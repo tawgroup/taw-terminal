@@ -1,5 +1,5 @@
 /**
- * VibeTerminal - Main App
+ * TawTerminal - Main App
  * Multi-tab terminal with split panes, image paste, and themes
  */
 import { useState, useCallback } from 'react'
@@ -33,7 +33,7 @@ function AppContent() {
       {/* Title bar drag region */}
       <div className="titlebar">
         <div className="titlebar-drag" />
-        <span className="titlebar-title">VibeTerminal</span>
+        <span className="titlebar-title">TawTerminal</span>
         <button className="titlebar-theme-btn" onClick={cycleTheme} title={`Theme: ${themeName}`}>
           ◐
         </button>

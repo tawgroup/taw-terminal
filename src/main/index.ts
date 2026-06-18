@@ -1,5 +1,5 @@
 /**
- * VibeTerminal - Main Process
+ * TawTerminal - Main Process
  * Electron app entry point
  */
 import { app, BrowserWindow, ipcMain, nativeTheme, shell } from 'electron'

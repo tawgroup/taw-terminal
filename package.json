@@ -1,6 +1,6 @@
 {
-  "name": "vibe-terminal",
-  "version": "0.1.4",
+  "name": "taw-terminal",
+  "version": "0.1.0",
   "description": "A modern terminal with image paste, split panes, and beautiful themes",
   "main": "./out/main/index.js",
   "scripts": {
@@ -38,8 +38,8 @@
     "vite": "^5.0.0"
   },
   "build": {
-    "appId": "com.vibeflow.terminal",
-    "productName": "VibeTerminal",
+    "appId": "com.tawgroup.terminal",
+    "productName": "TawTerminal",
     "icon": "resources/icon.icns",
     "mac": {
       "icon": "resources/icon.icns",
@@ -47,10 +47,7 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build-config/entitlements.mac.plist",
-      "entitlementsInherit": "build-config/entitlements.mac.plist",
-      "notarize": {
-        "teamId": "6A3UDSGHD3"
-      }
+      "entitlementsInherit": "build-config/entitlements.mac.plist"
     },
     "win": {
       "icon": "resources/icon.ico"

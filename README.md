@@ -1,10 +1,12 @@
-# VibeTerminal
+# TawTerminal
 
 A modern terminal built for developers who work with AI coding agents like **Claude Code** on macOS. Smoother typing, zero input lag, beautiful themes.
 
+> Based on [VibeTerminal](https://github.com/nghiahsgs/VibeTerminal) (MIT), rebranded and maintained by [TAW Group](https://github.com/tawgroup).
+
 ## Why Not the Default Terminal?
 
-| | macOS Terminal / iTerm2 | VibeTerminal |
+| | macOS Terminal / iTerm2 | TawTerminal |
 |---|---|---|
 | **Typing feel** | Can stutter — characters appear late when shell is busy | Instant keystroke rendering via Xterm.js, no "dragging characters" |
 | **Rendering** | CPU-based text drawing | GPU-accelerated (WebGL) at 60fps |
@@ -18,7 +20,7 @@ A modern terminal built for developers who work with AI coding agents like **Cla
 
 When running Claude Code, your terminal receives **massive streams of AI-generated output** while you're still typing. Default terminals render everything synchronously — shell output and your keystrokes compete for the same thread, causing the "dragging characters" effect.
 
-VibeTerminal separates concerns:
+TawTerminal separates concerns:
 
 ```
 You (keystrokes) ─→ Xterm.js ─→ IPC ─→ PTY Manager ─→ Shell (zsh/bash)
@@ -58,27 +60,6 @@ npm run dev       # Start development
 | `Cmd+W` | Close tab |
 | `Cmd+D` | Split pane |
 | `Cmd+Shift+D` | Toggle split direction (horizontal/vertical) |
-
-## Download & Install
-
-### macOS (Apple Silicon)
-
-1. Download `VibeTerminal-x.x.x-arm64.dmg` from [Releases](https://github.com/nghiahsgs/VibeTerminal/releases)
-2. Open the DMG and drag **VibeTerminal** into **Applications**
-3. Open VibeTerminal from Applications — it's signed and notarized by Apple, so it should open without any warnings
-
-> **If macOS shows "VibeTerminal can't be opened"** (Gatekeeper warning), use one of these methods:
->
-> **Method 1** — Right-click → Open:
-> Right-click (or Control-click) on VibeTerminal in Applications → click **Open** → click **Open** again in the dialog
->
-> **Method 2** — Terminal command:
-> ```bash
-> xattr -cr /Applications/VibeTerminal.app
-> ```
->
-> **Method 3** — System Settings:
-> Go to **System Settings → Privacy & Security** → scroll down → click **Open Anyway** next to the VibeTerminal message
 
 ## Build from Source
 
@@ -152,6 +133,10 @@ src/
 - **React 18** — UI components
 - **electron-vite** — fast HMR development
 - **TypeScript** — type safety throughout
+
+## Credits
+
+Built on top of [VibeTerminal](https://github.com/nghiahsgs/VibeTerminal) by [@nghiahsgs](https://github.com/nghiahsgs).
 
 ## License
 
