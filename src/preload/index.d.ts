@@ -9,9 +9,18 @@ export interface TerminalAPI {
   onExit: (callback: (payload: { id: string }) => void) => () => void
 }
 
+export interface UpdateInfo {
+  current: string
+  latest: string | null
+  hasUpdate: boolean
+}
+
 export interface AppAPI {
   getTheme: () => Promise<'dark' | 'light'>
   getHome: () => Promise<string>
+  getVersion: () => Promise<string>
+  checkUpdate: () => Promise<UpdateInfo>
+  releasesUrl: () => Promise<string>
   openExternal: (url: string) => Promise<void>
 }
 

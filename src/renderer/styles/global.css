@@ -678,6 +678,31 @@ html, body, #root {
 .u-tok { margin-left: auto; opacity: 0.95; font-family: "JetBrains Mono", monospace; }
 .u-cost { width: 64px; text-align: right; opacity: 0.6; font-family: "JetBrains Mono", monospace; }
 
+/* Version + update row */
+.ws-version {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.v-tag { opacity: 0.5; }
+.v-ok { margin-left: auto; opacity: 0.35; }
+.v-update {
+  margin-left: auto;
+  background: none;
+  border: 1px solid #34d399;
+  color: #34d399;
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-size: 10.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.v-update:hover { background: rgba(52, 211, 153, 0.12); }
+
 /* Main panel */
 .ws-main {
   flex: 1;

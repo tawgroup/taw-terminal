@@ -88,6 +88,37 @@ ipcMain.handle('app:getTheme', () => {
 
 ipcMain.handle('app:getHome', () => os.homedir())
 
+ipcMain.handle('app:getVersion', () => app.getVersion())
+
+const REPO = 'tawgroup/taw-terminal'
+
+function cmpSemver(a: string, b: string): number {
+  const pa = a.split('.').map(n => parseInt(n) || 0)
+  const pb = b.split('.').map(n => parseInt(n) || 0)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0)
+  }
+  return 0
+}
+
+// Compare the running version against the latest GitHub release tag
+ipcMain.handle('app:checkUpdate', async () => {
+  const current = app.getVersion()
+  try {
+    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+      headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'TawTerminal' }
+    })
+    if (!res.ok) return { current, latest: null, hasUpdate: false }
+    const data = (await res.json()) as { tag_name?: string }
+    const latest = (data.tag_name || '').replace(/^v/, '')
+    return { current, latest: latest || null, hasUpdate: !!latest && cmpSemver(latest, current) > 0 }
+  } catch {
+    return { current, latest: null, hasUpdate: false }
+  }
+})
+
+ipcMain.handle('app:releasesUrl', () => `https://github.com/${REPO}/releases`)
+
 // --- Workspace IPC ---
 
 // Open native folder picker, return the chosen directory (or null if cancelled)

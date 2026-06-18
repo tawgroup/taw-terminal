@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { ClaudeIcon, CodexIcon } from './icons'
-import type { UsageSnapshot } from '../../preload/index.d'
+import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
 export type TermKind = 'shell' | 'claude' | 'codex'
 
@@ -43,6 +43,9 @@ interface Props {
   onCloseTerminal: (id: string) => void
   onRenameTerminal: (id: string, name: string) => void
   usage: UsageSnapshot | null
+  version: string
+  update: UpdateInfo | null
+  onOpenReleases: () => void
 }
 
 function fmtTok(n: number): string {
@@ -63,7 +66,7 @@ function splitPath(p: string, home: string): { parent: string; base: string } {
 export function WorkspaceSidebar({
   workspaces, activeId, busy, home, query, onQuery,
   onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex,
-  onSelectTerminal, onCloseTerminal, onRenameTerminal, usage
+  onSelectTerminal, onCloseTerminal, onRenameTerminal, usage, version, update, onOpenReleases
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -208,6 +211,17 @@ export function WorkspaceSidebar({
           </div>
         </div>
       )}
+
+      <div className="ws-version">
+        <span className="v-tag">TawTerminal v{version || '—'}</span>
+        {update?.hasUpdate ? (
+          <button className="v-update" onClick={onOpenReleases} title="Open releases">
+            ↑ v{update.latest} available
+          </button>
+        ) : (
+          <span className="v-ok">up to date</span>
+        )}
+      </div>
     </div>
   )
 }

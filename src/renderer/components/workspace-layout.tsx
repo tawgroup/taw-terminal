@@ -8,7 +8,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { TerminalInstance } from './terminal-instance'
 import { WorkspaceSidebar, Workspace, Term, TermKind } from './workspace-sidebar'
 import { ClaudeIcon, CodexIcon, TerminalIcon } from './icons'
-import type { UsageSnapshot } from '../../preload/index.d'
+import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
 let termCounter = 0
 const nextTermId = () => `term-${++termCounter}`
@@ -29,6 +29,8 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
     return saved >= 220 && saved <= 640 ? saved : 340
   })
   const [usage, setUsage] = useState<UsageSnapshot | null>(null)
+  const [version, setVersion] = useState('')
+  const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const loadedRef = useRef(false)
   const resizingRef = useRef(false)
   const busyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -100,16 +102,21 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
             const id = nextTermId()
             const cwd = t.cwd || w.path
             if (t.kind === 'claude' && t.claudeSessionId) {
-              // Resume the exact Claude Code conversation by its session ID
+              // Resume the conversation; if it was never flushed to disk, fall
+              // back to a fresh session reusing the same id (no error dead-end).
+              const sid = t.claudeSessionId
               return {
                 id, name: t.name, cwd, kind: 'claude' as const,
-                sessionId: t.claudeSessionId,
-                initialCommand: `claude --resume ${t.claudeSessionId} --dangerously-skip-permissions`
+                sessionId: sid,
+                initialCommand: `claude --resume ${sid} --dangerously-skip-permissions || claude --session-id ${sid} --dangerously-skip-permissions`
               }
             }
             if (t.kind === 'codex') {
-              // Codex has no fixed id, so resume the most recent session
-              return { id, name: t.name, cwd, kind: 'codex' as const, initialCommand: `codex resume --last` }
+              // Codex has no fixed id; resume most recent, else start fresh
+              return {
+                id, name: t.name, cwd, kind: 'codex' as const,
+                initialCommand: `codex resume --last || codex --dangerously-bypass-approvals-and-sandbox`
+              }
             }
             return { id, name: t.name, cwd, kind: 'shell' as const }
           })
@@ -226,6 +233,16 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
     return () => { alive = false; clearInterval(iv) }
   }, [])
 
+  // --- version + update check (once on launch) ---
+  useEffect(() => {
+    window.app.getVersion().then(setVersion).catch(() => {})
+    window.app.checkUpdate().then(setUpdate).catch(() => {})
+  }, [])
+
+  const openReleases = useCallback(() => {
+    window.app.releasesUrl().then(u => window.app.openExternal(u)).catch(() => {})
+  }, [])
+
   // --- keyboard shortcuts ---
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -308,6 +325,9 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         onCloseTerminal={removeTerminal}
         onRenameTerminal={renameTerminal}
         usage={usage}
+        version={version}
+        update={update}
+        onOpenReleases={openReleases}
       />
 
       {/* Drag to resize the sidebar */}

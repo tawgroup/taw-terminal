@@ -45,7 +45,17 @@ You (keystrokes) ─→ Xterm.js ─→ IPC ─→ PTY Manager ─→ Shell (zsh
 - **Auto-restart** — crashed shell sessions recover automatically (up to 3 retries)
 - **Native macOS feel** — hidden title bar with traffic lights, drag region
 
-## Quick Start
+## Install (macOS, Apple Silicon)
+
+One line — downloads the latest release, installs into `/Applications`, and launches:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tawgroup/taw-terminal/main/install.sh | bash
+```
+
+Or grab the `.dmg` from [Releases](https://github.com/tawgroup/taw-terminal/releases) and drag it into Applications. The app shows its version and checks for updates in the sidebar footer.
+
+## Quick Start (from source)
 
 ```bash
 npm install
