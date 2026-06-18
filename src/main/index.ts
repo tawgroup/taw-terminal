@@ -13,19 +13,26 @@ let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
-    width: 900,
-    height: 600,
-    minWidth: 400,
-    minHeight: 300,
+    width: 1440,
+    height: 900,
+    minWidth: 600,
+    minHeight: 400,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 12, y: 12 },
     backgroundColor: '#1a1b26',
+    show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false
     }
+  })
+
+  // Open maximized (fills the screen) once the renderer is ready
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize()
+    mainWindow?.show()
   })
 
   // Load renderer
