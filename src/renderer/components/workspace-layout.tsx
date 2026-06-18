@@ -6,7 +6,8 @@
  */
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { TerminalInstance } from './terminal-instance'
-import { WorkspaceSidebar, Workspace } from './workspace-sidebar'
+import { WorkspaceSidebar, Workspace, Term, TermKind } from './workspace-sidebar'
+import { ClaudeIcon, CodexIcon, TerminalIcon } from './icons'
 
 let termCounter = 0
 const nextTermId = () => `term-${++termCounter}`
@@ -43,19 +44,28 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
     })
   }, [])
 
-  const spawnTerminal = useCallback((wsId: string, path: string, kind: 'shell' | 'claude' = 'shell') => {
+  const spawnTerminal = useCallback((wsId: string, path: string, kind: TermKind = 'shell') => {
     const id = nextTermId()
-    const term = kind === 'claude'
-      ? (() => {
-          // A fresh Claude Code session with a known ID, so it can be resumed later
-          const sessionId = crypto.randomUUID()
-          return {
-            id, cwd: path, kind: 'claude' as const, sessionId,
-            name: `Claude ${termCounter}`,
-            initialCommand: `claude --session-id ${sessionId}`
-          }
-        })()
-      : { id, cwd: path, kind: 'shell' as const, name: `Terminal ${termCounter}` }
+    let term: Term
+    if (kind === 'claude') {
+      // A fresh Claude Code session with a known ID, so it can be resumed later.
+      // --dangerously-skip-permissions skips the trust/approval prompts.
+      const sessionId = crypto.randomUUID()
+      term = {
+        id, cwd: path, kind: 'claude', sessionId,
+        name: `Claude ${termCounter}`,
+        initialCommand: `claude --session-id ${sessionId} --dangerously-skip-permissions`
+      }
+    } else if (kind === 'codex') {
+      // Codex can't be given a session id up front, so restore uses `resume --last`.
+      term = {
+        id, cwd: path, kind: 'codex',
+        name: `Codex ${termCounter}`,
+        initialCommand: `codex --dangerously-bypass-approvals-and-sandbox`
+      }
+    } else {
+      term = { id, cwd: path, kind: 'shell', name: `Terminal ${termCounter}` }
+    }
     setWorkspaces(prev => prev.map(w =>
       w.id === wsId ? { ...w, collapsed: false, terminals: [...w.terminals, term] } : w
     ))
@@ -92,8 +102,12 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               return {
                 id, name: t.name, cwd, kind: 'claude' as const,
                 sessionId: t.claudeSessionId,
-                initialCommand: `claude --resume ${t.claudeSessionId}`
+                initialCommand: `claude --resume ${t.claudeSessionId} --dangerously-skip-permissions`
               }
+            }
+            if (t.kind === 'codex') {
+              // Codex has no fixed id, so resume the most recent session
+              return { id, name: t.name, cwd, kind: 'codex' as const, initialCommand: `codex resume --last` }
             }
             return { id, name: t.name, cwd, kind: 'shell' as const }
           })
@@ -268,6 +282,10 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
           const ws = workspaces.find(w => w.id === wsId)
           if (ws) spawnTerminal(ws.id, ws.path, 'claude')
         }}
+        onAddCodex={(wsId) => {
+          const ws = workspaces.find(w => w.id === wsId)
+          if (ws) spawnTerminal(ws.id, ws.path, 'codex')
+        }}
         onSelectTerminal={setActiveId}
         onCloseTerminal={removeTerminal}
       />
@@ -284,7 +302,9 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               className={`ws-tab ${t.id === activeId ? 'active' : ''}`}
               onClick={() => setActiveId(t.id)}
             >
-              <span className="ws-tab-ic">{'>_'}</span>
+              <span className={`ws-tab-ic ${t.kind}`}>
+                {t.kind === 'claude' ? <ClaudeIcon size={13} /> : t.kind === 'codex' ? <CodexIcon size={13} /> : <TerminalIcon size={13} />}
+              </span>
               <span>{t.name}</span>
               <button className="ws-tab-x" onClick={(e) => { e.stopPropagation(); removeTerminal(t.id) }}>×</button>
             </div>
@@ -300,7 +320,12 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 className="ws-tab-add claude"
                 title="New Claude Code session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'claude')}
-              >✳</button>
+              ><ClaudeIcon size={14} /></button>
+              <button
+                className="ws-tab-add codex"
+                title="New Codex session"
+                onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'codex')}
+              ><CodexIcon size={14} /></button>
             </>
           )}
         </div>

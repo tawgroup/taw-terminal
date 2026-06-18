@@ -524,12 +524,19 @@ html, body, #root {
   font-size: 11px;
 }
 .folder-head:hover .folder-rm { opacity: 0.6; }
-.folder-add { color: var(--accent); }
-.folder-claude { color: #d8a657; margin-left: auto; }
-.folder-claude + .folder-add { margin-left: 0; }
-.folder-add:hover, .folder-rm:hover, .folder-claude:hover { background: var(--hover); opacity: 1; }
+.folder-add, .folder-claude, .folder-codex, .folder-rm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.folder-add { color: var(--accent); margin-left: 0; }
+.folder-claude { color: #d97757; margin-left: auto; }
+.folder-codex { color: #10a37f; margin-left: 0; }
+.folder-add:hover, .folder-rm:hover, .folder-claude:hover, .folder-codex:hover { background: var(--hover); opacity: 1; }
 
-.term-claude-ic { color: #d8a657; font-size: 11px; flex-shrink: 0; }
+.term-kind-ic { display: inline-flex; align-items: center; flex-shrink: 0; }
+.term-kind-ic.claude { color: #d97757; }
+.term-kind-ic.codex { color: #10a37f; }
 
 /* Terminal cards (name + status only) */
 .terms {
@@ -605,8 +612,15 @@ html, body, #root {
 }
 .terms-empty:hover { opacity: 1; border-color: var(--accent); }
 .terms-empty-row { display: flex; gap: 6px; }
-.terms-empty-row .terms-empty { flex: 1; text-align: center; }
-.terms-empty.claude:hover { border-color: #d8a657; color: #d8a657; }
+.terms-empty-row .terms-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.terms-empty.claude:hover { border-color: #d97757; color: #d97757; }
+.terms-empty.codex:hover { border-color: #10a37f; color: #10a37f; }
 
 .ws-addrow {
   width: 100%;
@@ -655,7 +669,9 @@ html, body, #root {
 }
 .ws-tab:hover { opacity: 0.85; }
 .ws-tab.active { opacity: 1; background: var(--tab-active-bg); }
-.ws-tab-ic { color: #34d399; font-size: 11px; }
+.ws-tab-ic { display: inline-flex; align-items: center; color: #34d399; }
+.ws-tab-ic.claude { color: #d97757; }
+.ws-tab-ic.codex { color: #10a37f; }
 .ws-tab-x {
   background: none;
   border: none;
@@ -678,8 +694,10 @@ html, body, #root {
   cursor: pointer;
   flex-shrink: 0;
 }
+.ws-tab-add { display: flex; align-items: center; justify-content: center; }
 .ws-tab-add:hover { opacity: 1; background: var(--hover); }
-.ws-tab-add.claude { color: #d8a657; }
+.ws-tab-add.claude { color: #d97757; }
+.ws-tab-add.codex { color: #10a37f; }
 
 .ws-toolbar {
   display: flex;
