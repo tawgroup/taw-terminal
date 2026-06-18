@@ -365,7 +365,14 @@ html, body, #root {
   font-size: 13px;
   opacity: 0.45;
   cursor: pointer;
+  background: none;
+  border: none;
+  color: inherit;
+  font-family: inherit;
 }
+.rail-ic.logo { cursor: default; color: var(--accent); opacity: 0.9; }
+.rail-ic.toggle { font-size: 17px; }
+.rail-ic:hover { opacity: 0.9; }
 .rail-ic.active {
   opacity: 1;
   color: var(--accent);
@@ -537,6 +544,20 @@ html, body, #root {
 .term-kind-ic { display: inline-flex; align-items: center; flex-shrink: 0; }
 .term-kind-ic.claude { color: #d97757; }
 .term-kind-ic.codex { color: #10a37f; }
+.term-kind-ic.shell { color: #60a5fa; opacity: 0.85; }
+
+/* Always-on ⌘N jump hint (right-side pill) */
+.term-num {
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--accent);
+  background: var(--hover);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 6px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
 
 /* Terminal cards (name + status only) */
 .terms {

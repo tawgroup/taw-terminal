@@ -3,7 +3,7 @@
  * Each folder is a saved path; clicking + spawns a terminal rooted in that path.
  */
 import { useState } from 'react'
-import { ClaudeIcon, CodexIcon } from './icons'
+import { ClaudeIcon, CodexIcon, TerminalIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
 export type TermKind = 'shell' | 'claude' | 'codex'
@@ -48,7 +48,6 @@ interface Props {
   onOpenReleases: () => void
   onUpdate: () => void
   updating: boolean
-  showHotkeys: boolean
   hotkeyIndex: Record<string, number>
 }
 
@@ -71,7 +70,7 @@ export function WorkspaceSidebar({
   workspaces, activeId, busy, home, query, onQuery,
   onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex,
   onSelectTerminal, onCloseTerminal, onRenameTerminal, usage, version, update, onOpenReleases,
-  onUpdate, updating, showHotkeys, hotkeyIndex
+  onUpdate, updating, hotkeyIndex
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -144,6 +143,7 @@ export function WorkspaceSidebar({
                         <span className={`status-dot ${isBusy ? 'busy' : 'idle'}`} />
                         {t.kind === 'claude' && <span className="term-kind-ic claude" title="Claude Code"><ClaudeIcon size={12} /></span>}
                         {t.kind === 'codex' && <span className="term-kind-ic codex" title="Codex"><CodexIcon size={12} /></span>}
+                        {t.kind === 'shell' && <span className="term-kind-ic shell" title="Terminal"><TerminalIcon size={12} /></span>}
                         {editingId === t.id ? (
                           <input
                             className="term-rename"
@@ -165,14 +165,9 @@ export function WorkspaceSidebar({
                             onDoubleClick={(e) => { e.stopPropagation(); startRename(t) }}
                           >{t.name}</span>
                         )}
-                        {showHotkeys && hotkeyIndex[t.id] ? (
-                          <span className="term-hotkey">⌘{hotkeyIndex[t.id]}</span>
-                        ) : (
-                          <>
-                            {isActive && <span className="term-state">active</span>}
-                            {!isActive && isBusy && <span className="term-running">running</span>}
-                          </>
-                        )}
+                        {isActive && <span className="term-state">active</span>}
+                        {!isActive && isBusy && <span className="term-running">running</span>}
+                        {hotkeyIndex[t.id] && <span className="term-num" title={`Jump: ⌘${hotkeyIndex[t.id]}`}>⌘{hotkeyIndex[t.id]}</span>}
                         <button
                           className="term-close"
                           title="Close terminal"

@@ -31,7 +31,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
   const [usage, setUsage] = useState<UsageSnapshot | null>(null)
   const [version, setVersion] = useState('')
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
-  const [showHotkeys, setShowHotkeys] = useState(false)
+  const [sidebarHidden, setSidebarHidden] = useState(false)
   const loadedRef = useRef(false)
   const resizingRef = useRef(false)
   const busyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -278,25 +278,15 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         const t = all[parseInt(e.key, 10) - 1]
         if (t) setActiveId(t.id)
       }
+      // ⌘B: toggle the sidebar (focus / deep-work mode)
+      if (isMeta && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault()
+        setSidebarHidden(h => !h)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [activeWorkspace, workspaces, activeId, spawnTerminal, removeTerminal])
-
-  // Hold ⌘ (or Ctrl) to reveal the jump numbers on each terminal
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => { if (e.key === 'Meta' || e.key === 'Control') setShowHotkeys(true) }
-    const up = (e: KeyboardEvent) => { if (e.key === 'Meta' || e.key === 'Control') setShowHotkeys(false) }
-    const clear = () => setShowHotkeys(false)
-    window.addEventListener('keydown', down)
-    window.addEventListener('keyup', up)
-    window.addEventListener('blur', clear)
-    return () => {
-      window.removeEventListener('keydown', down)
-      window.removeEventListener('keyup', up)
-      window.removeEventListener('blur', clear)
-    }
-  }, [])
 
   // --- sidebar resize (drag handle) ---
   const startResize = useCallback((e: React.MouseEvent) => {
@@ -327,16 +317,19 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
 
   return (
     <div className="workspace-root" style={{ ['--sidebar-w' as string]: `${sidebarWidth}px` }}>
-      {/* Decorative activity rail */}
+      {/* Activity rail */}
       <div className="ws-rail">
-        <div className="rail-ic active">{'>_'}</div>
-        <div className="rail-ic">▦</div>
-        <div className="rail-ic">⎇</div>
+        <div className="rail-ic logo">{'>_'}</div>
+        <button
+          className={`rail-ic toggle ${sidebarHidden ? '' : 'active'}`}
+          title="Toggle sidebar (⌘B)"
+          onClick={() => setSidebarHidden(h => !h)}
+        >◧</button>
         <div className="rail-spacer" />
         <div className="rail-ic">⚙</div>
       </div>
 
-      <WorkspaceSidebar
+      {!sidebarHidden && <WorkspaceSidebar
         workspaces={workspaces}
         activeId={activeId}
         busy={busy}
@@ -367,12 +360,11 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         onOpenReleases={openReleases}
         onUpdate={doUpdate}
         updating={updating}
-        showHotkeys={showHotkeys}
         hotkeyIndex={hotkeyIndex}
-      />
+      />}
 
       {/* Drag to resize the sidebar */}
-      <div className="ws-resizer" onMouseDown={startResize} />
+      {!sidebarHidden && <div className="ws-resizer" onMouseDown={startResize} />}
 
       <div className="ws-main">
         {update?.hasUpdate && (
