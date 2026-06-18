@@ -46,7 +46,13 @@ export class PtyManager {
     try {
       const env: Record<string, string> = {}
       for (const [key, value] of Object.entries(process.env)) {
-        if (value !== undefined) env[key] = value
+        if (value === undefined) continue
+        // Strip the parent Claude Code session markers. If the app was itself
+        // launched from within a Claude Code session, these leak in and make
+        // every `claude` we spawn think it's a nested child session — which
+        // disables transcript persistence, so sessions can't be resumed.
+        if (/^CLAUDECODE$|^CLAUDE_CODE_|^CLAUDE_EFFORT$|^AI_AGENT$/.test(key)) continue
+        env[key] = value
       }
       env.TERM = 'xterm-256color'
       env.COLORTERM = 'truecolor'
