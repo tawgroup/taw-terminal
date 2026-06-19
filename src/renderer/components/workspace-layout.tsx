@@ -82,12 +82,15 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         initialCommand: `codex --dangerously-bypass-approvals-and-sandbox${MOUSE_RESET}`
       }
     } else if (kind === 'pi') {
-      // pi supports --session <uuid> to use/resume a specific session
+      // pi's --session only RESUMES an existing session. Give each PI terminal
+      // its own session dir so a fresh `pi` saves there and restore can
+      // `--continue` exactly that terminal's session.
       const sessionId = crypto.randomUUID()
+      const dir = `~/.taw-terminal/pi/${sessionId}`
       term = {
         id, cwd: path, kind: 'pi', sessionId,
         name: `PI ${termCounter}`,
-        initialCommand: `pi --session ${sessionId}${MOUSE_RESET}`
+        initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir}${MOUSE_RESET}`
       }
     } else {
       term = { id, cwd: path, kind: 'shell', name: `Terminal ${termCounter}` }
@@ -143,12 +146,13 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               }
             }
             if (t.kind === 'pi' && t.claudeSessionId) {
-              // Resume the same pi session by id
+              // Continue the session stored in this terminal's own pi session dir
               const sid = t.claudeSessionId
+              const dir = `~/.taw-terminal/pi/${sid}`
               return {
                 id, name: t.name, cwd, kind: 'pi' as const,
                 sessionId: sid,
-                initialCommand: `pi --session ${sid}${MOUSE_RESET}`
+                initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir} --continue${MOUSE_RESET}`
               }
             }
             return { id, name: t.name, cwd, kind: 'shell' as const }

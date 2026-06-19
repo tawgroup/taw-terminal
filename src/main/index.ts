@@ -122,7 +122,7 @@ ipcMain.handle('app:releasesUrl', () => `https://github.com/${REPO}/releases`)
 
 // Self-update via the curl installer: spawn a detached updater that waits for
 // this app to quit, then downloads + installs the latest release and relaunches.
-ipcMain.handle('app:runUpdate', () => {
+ipcMain.handle('app:runUpdate', async () => {
   const pid = process.pid
   const script =
     `for i in $(seq 1 40); do kill -0 ${pid} 2>/dev/null || break; sleep 0.5; done; ` +
@@ -133,8 +133,21 @@ ipcMain.handle('app:runUpdate', () => {
   } catch {
     return false
   }
+  // Tell the user it will close + reopen on its own, so they don't relaunch
+  // it manually mid-download and see the old version.
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    await dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      message: 'Updating TawTerminal…',
+      detail:
+        'TawTerminal will close now and reopen automatically once the new version finishes downloading (about 10–20 seconds).\n\nPlease don\'t reopen it yourself — it will come back on its own.',
+      buttons: ['OK'],
+      defaultId: 0,
+      noLink: true
+    })
+  }
   // Quit (gracefully) so the running bundle can be replaced and relaunched
-  setTimeout(() => app.quit(), 300)
+  app.quit()
   return true
 })
 
