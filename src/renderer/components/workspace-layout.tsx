@@ -7,11 +7,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { TerminalInstance } from './terminal-instance'
 import { WorkspaceSidebar, Workspace, Term, TermKind } from './workspace-sidebar'
-import { ClaudeIcon, CodexIcon, TerminalIcon } from './icons'
+import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
 let termCounter = 0
 const nextTermId = () => `term-${++termCounter}`
+
+// Claude/Codex TUIs enable mouse reporting and don't always disable it on exit,
+// leaving the shell spewing escape codes (e.g. "35;13;13M") on mouse movement.
+// Appending this resets mouse-tracking modes once the AI process exits.
+const MOUSE_RESET = "; printf '\\033[?1000l\\033[?1002l\\033[?1003l\\033[?1006l\\033[?1015l\\033[?1005l\\033[?1004l'"
 
 interface Props {
   onImagePaste?: (dataUrl: string) => void
@@ -63,14 +68,22 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
       term = {
         id, cwd: path, kind: 'claude', sessionId,
         name: `Claude ${termCounter}`,
-        initialCommand: `claude --session-id ${sessionId} --dangerously-skip-permissions`
+        initialCommand: `claude --session-id ${sessionId} --dangerously-skip-permissions${MOUSE_RESET}`
       }
     } else if (kind === 'codex') {
       // Codex can't be given a session id up front, so restore uses `resume --last`.
       term = {
         id, cwd: path, kind: 'codex',
         name: `Codex ${termCounter}`,
-        initialCommand: `codex --dangerously-bypass-approvals-and-sandbox`
+        initialCommand: `codex --dangerously-bypass-approvals-and-sandbox${MOUSE_RESET}`
+      }
+    } else if (kind === 'pi') {
+      // pi supports --session <uuid> to use/resume a specific session
+      const sessionId = crypto.randomUUID()
+      term = {
+        id, cwd: path, kind: 'pi', sessionId,
+        name: `PI ${termCounter}`,
+        initialCommand: `pi --session ${sessionId}${MOUSE_RESET}`
       }
     } else {
       term = { id, cwd: path, kind: 'shell', name: `Terminal ${termCounter}` }
@@ -115,14 +128,23 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               return {
                 id, name: t.name, cwd, kind: 'claude' as const,
                 sessionId: sid,
-                initialCommand: `claude --resume ${sid} --dangerously-skip-permissions`
+                initialCommand: `claude --resume ${sid} --dangerously-skip-permissions${MOUSE_RESET}`
               }
             }
             if (t.kind === 'codex') {
               // Codex has no fixed id; resume the most recent session
               return {
                 id, name: t.name, cwd, kind: 'codex' as const,
-                initialCommand: `codex resume --last`
+                initialCommand: `codex resume --last${MOUSE_RESET}`
+              }
+            }
+            if (t.kind === 'pi' && t.claudeSessionId) {
+              // Resume the same pi session by id
+              const sid = t.claudeSessionId
+              return {
+                id, name: t.name, cwd, kind: 'pi' as const,
+                sessionId: sid,
+                initialCommand: `pi --session ${sid}${MOUSE_RESET}`
               }
             }
             return { id, name: t.name, cwd, kind: 'shell' as const }
@@ -364,6 +386,10 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
           const ws = workspaces.find(w => w.id === wsId)
           if (ws) spawnTerminal(ws.id, ws.path, 'codex')
         }}
+        onAddPi={(wsId) => {
+          const ws = workspaces.find(w => w.id === wsId)
+          if (ws) spawnTerminal(ws.id, ws.path, 'pi')
+        }}
         onSelectTerminal={setActiveId}
         onCloseTerminal={removeTerminal}
         onRenameTerminal={renameTerminal}
@@ -400,7 +426,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               onClick={() => setActiveId(t.id)}
             >
               <span className={`ws-tab-ic ${t.kind}`}>
-                {t.kind === 'claude' ? <ClaudeIcon size={13} /> : t.kind === 'codex' ? <CodexIcon size={13} /> : <TerminalIcon size={13} />}
+                {t.kind === 'claude' ? <ClaudeIcon size={13} /> : t.kind === 'codex' ? <CodexIcon size={13} /> : t.kind === 'pi' ? <PiIcon size={13} /> : <TerminalIcon size={13} />}
               </span>
               <span>{t.name}</span>
               <button className="ws-tab-x" title="Close terminal (⌘W)" onClick={(e) => { e.stopPropagation(); removeTerminal(t.id) }}>×</button>
@@ -423,6 +449,11 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 title="New Codex session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'codex')}
               ><CodexIcon size={14} /></button>
+              <button
+                className="ws-tab-add pi"
+                title="New PI session"
+                onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'pi')}
+              ><PiIcon size={14} /></button>
             </>
           )}
         </div>

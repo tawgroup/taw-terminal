@@ -38,6 +38,18 @@ export function ClaudeIcon({ size = 14, className }: IconProps) {
   )
 }
 
+/** PI — the π glyph */
+export function PiIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7.5h16" />
+      <path d="M9 7.5v10" />
+      <path d="M16 7.5v8.5a1.5 1.5 0 0 0 3 0" />
+    </svg>
+  )
+}
+
 /** Codex — OpenAI-style six-petal blossom */
 export function CodexIcon({ size = 14, className }: IconProps) {
   const petals = Array.from({ length: 6 }, (_, i) => {

@@ -593,14 +593,21 @@ html, body, #root {
   align-items: center;
   justify-content: center;
 }
+.folder-add, .folder-claude, .folder-codex, .folder-pi, .folder-rm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .folder-add { color: var(--accent); margin-left: 0; }
 .folder-claude { color: #d97757; margin-left: auto; }
 .folder-codex { color: #10a37f; margin-left: 0; }
-.folder-add:hover, .folder-rm:hover, .folder-claude:hover, .folder-codex:hover { background: var(--hover); opacity: 1; }
+.folder-pi { color: #a78bfa; margin-left: 0; }
+.folder-add:hover, .folder-rm:hover, .folder-claude:hover, .folder-codex:hover, .folder-pi:hover { background: var(--hover); opacity: 1; }
 
 .term-kind-ic { display: inline-flex; align-items: center; flex-shrink: 0; }
 .term-kind-ic.claude { color: #d97757; }
 .term-kind-ic.codex { color: #10a37f; }
+.term-kind-ic.pi { color: #a78bfa; }
 .term-kind-ic.shell { color: #60a5fa; opacity: 0.85; }
 
 /* Always-on ⌘N jump hint (right-side pill) */
@@ -721,6 +728,7 @@ html, body, #root {
 }
 .terms-empty.claude:hover { border-color: #d97757; color: #d97757; }
 .terms-empty.codex:hover { border-color: #10a37f; color: #10a37f; }
+.terms-empty.pi:hover { border-color: #a78bfa; color: #a78bfa; }
 
 .ws-addrow {
   width: 100%;
@@ -862,6 +870,7 @@ html, body, #root {
 .ws-tab-ic { display: inline-flex; align-items: center; color: #34d399; }
 .ws-tab-ic.claude { color: #d97757; }
 .ws-tab-ic.codex { color: #10a37f; }
+.ws-tab-ic.pi { color: #a78bfa; }
 .ws-tab-x {
   background: none;
   border: none;
@@ -888,6 +897,7 @@ html, body, #root {
 .ws-tab-add:hover { opacity: 1; background: var(--hover); }
 .ws-tab-add.claude { color: #d97757; }
 .ws-tab-add.codex { color: #10a37f; }
+.ws-tab-add.pi { color: #a78bfa; }
 
 .ws-toolbar {
   display: flex;

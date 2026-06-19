@@ -28,7 +28,7 @@ export interface AppAPI {
 export interface PersistedTerm {
   name: string
   cwd: string
-  kind?: 'shell' | 'claude' | 'codex'
+  kind?: 'shell' | 'claude' | 'codex' | 'pi'
   claudeSessionId?: string
 }
 

@@ -3,10 +3,10 @@
  * Each folder is a saved path; clicking + spawns a terminal rooted in that path.
  */
 import { useState } from 'react'
-import { ClaudeIcon, CodexIcon, TerminalIcon } from './icons'
+import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
-export type TermKind = 'shell' | 'claude' | 'codex'
+export type TermKind = 'shell' | 'claude' | 'codex' | 'pi'
 
 export interface Term {
   id: string
@@ -39,6 +39,7 @@ interface Props {
   onAddTerminal: (workspaceId: string) => void
   onAddClaude: (workspaceId: string) => void
   onAddCodex: (workspaceId: string) => void
+  onAddPi: (workspaceId: string) => void
   onSelectTerminal: (id: string) => void
   onCloseTerminal: (id: string) => void
   onRenameTerminal: (id: string, name: string) => void
@@ -68,7 +69,7 @@ function splitPath(p: string, home: string): { parent: string; base: string } {
 
 export function WorkspaceSidebar({
   workspaces, activeId, busy, home, query, onQuery,
-  onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex,
+  onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex, onAddPi,
   onSelectTerminal, onCloseTerminal, onRenameTerminal, usage, version, update, onOpenReleases,
   onUpdate, updating, hotkeyIndex
 }: Props) {
@@ -126,6 +127,7 @@ export function WorkspaceSidebar({
                 {count > 0 && <span className="folder-badge">{count} {count === 1 ? 'terminal' : 'terminals'}</span>}
                 <button className="folder-claude" title="New Claude Code session here" onClick={() => onAddClaude(ws.id)}><ClaudeIcon size={13} /></button>
                 <button className="folder-codex" title="New Codex session here" onClick={() => onAddCodex(ws.id)}><CodexIcon size={13} /></button>
+                <button className="folder-pi" title="New PI session here" onClick={() => onAddPi(ws.id)}><PiIcon size={13} /></button>
                 <button className="folder-add" title="New terminal here" onClick={() => onAddTerminal(ws.id)}>+</button>
                 <button className="folder-rm" title="Remove folder" onClick={() => onRemoveFolder(ws.id)}>🗑</button>
               </div>
@@ -145,6 +147,7 @@ export function WorkspaceSidebar({
                         <span className={`status-dot ${isBusy ? 'busy' : 'idle'}`} />
                         {t.kind === 'claude' && <span className="term-kind-ic claude" title="Claude Code"><ClaudeIcon size={12} /></span>}
                         {t.kind === 'codex' && <span className="term-kind-ic codex" title="Codex"><CodexIcon size={12} /></span>}
+                        {t.kind === 'pi' && <span className="term-kind-ic pi" title="PI"><PiIcon size={12} /></span>}
                         {t.kind === 'shell' && <span className="term-kind-ic shell" title="Terminal"><TerminalIcon size={12} /></span>}
                         {editingId === t.id ? (
                           <input
@@ -188,6 +191,9 @@ export function WorkspaceSidebar({
                       </button>
                       <button className="terms-empty codex" onClick={() => onAddCodex(ws.id)}>
                         <CodexIcon size={12} /> Codex
+                      </button>
+                      <button className="terms-empty pi" onClick={() => onAddPi(ws.id)}>
+                        <PiIcon size={12} /> PI
                       </button>
                     </div>
                   )}
