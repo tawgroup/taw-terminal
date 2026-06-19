@@ -9,6 +9,8 @@ import { TerminalInstance } from './terminal-instance'
 import { WorkspaceSidebar, Workspace, Term, TermKind } from './workspace-sidebar'
 import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
+import { KeybindingsModal } from './keybindings-modal'
+import { Binding, loadBindings, saveBindings, eventToCombo } from '../lib/keybindings'
 
 let termCounter = 0
 const nextTermId = () => `term-${++termCounter}`
@@ -37,6 +39,8 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
   const [version, setVersion] = useState('')
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
   const [sidebarHidden, setSidebarHidden] = useState(false)
+  const [bindings, setBindings] = useState<Binding[]>(() => loadBindings())
+  const [showKeybindings, setShowKeybindings] = useState(false)
   const loadedRef = useRef(false)
   const resizingRef = useRef(false)
   const busyTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
@@ -284,34 +288,55 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
 
   // --- keyboard shortcuts ---
   useEffect(() => {
+    const comboMap: Record<string, string> = {}
+    bindings.forEach(b => { comboMap[b.combo] = b.id })
+
+    const run = (actionId: string) => {
+      const ws = activeWorkspace || workspaces[0]
+      switch (actionId) {
+        case 'newTerminal': if (ws) spawnTerminal(ws.id, ws.path, 'shell'); break
+        case 'newClaude': if (ws) spawnTerminal(ws.id, ws.path, 'claude'); break
+        case 'newCodex': if (ws) spawnTerminal(ws.id, ws.path, 'codex'); break
+        case 'newPi': if (ws) spawnTerminal(ws.id, ws.path, 'pi'); break
+        case 'closeTerminal': if (activeId) removeTerminal(activeId); break
+        case 'toggleSidebar': setSidebarHidden(h => !h); break
+      }
+    }
+
     const handler = (e: KeyboardEvent) => {
       const isMeta = e.metaKey || e.ctrlKey
-      // ⌘T or ⌘N: new terminal in the current (active) folder
-      if (isMeta && !e.shiftKey && (e.key === 't' || e.key === 'n')) {
-        e.preventDefault()
-        const ws = activeWorkspace || workspaces[0]
-        if (ws) spawnTerminal(ws.id, ws.path)
-      }
-      if (isMeta && e.key === 'w') {
-        e.preventDefault()
-        if (activeId) removeTerminal(activeId)
-      }
-      // ⌘1–⌘9: jump to the Nth terminal (across all folders)
-      if (isMeta && /^[1-9]$/.test(e.key)) {
+      // ⌘1–⌘9: jump to the Nth terminal (fixed)
+      if (isMeta && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
         e.preventDefault()
         const all = workspaces.flatMap(w => w.terminals)
         const t = all[parseInt(e.key, 10) - 1]
         if (t) setActiveId(t.id)
+        return
       }
-      // ⌘B: toggle the sidebar (focus / deep-work mode)
-      if (isMeta && (e.key === 'b' || e.key === 'B')) {
-        e.preventDefault()
-        setSidebarHidden(h => !h)
+      // ⌘N: fixed alias for new terminal
+      if (isMeta && !e.shiftKey && !e.altKey && e.key === 'n') {
+        e.preventDefault(); run('newTerminal'); return
       }
+      // configurable bindings
+      const action = comboMap[eventToCombo(e)]
+      if (action) { e.preventDefault(); run(action) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [activeWorkspace, workspaces, activeId, spawnTerminal, removeTerminal])
+  }, [bindings, activeWorkspace, workspaces, activeId, spawnTerminal, removeTerminal])
+
+  const rebind = useCallback((id: string, combo: string) => {
+    setBindings(prev => {
+      const next = prev.map(b => (b.id === id ? { ...b, combo } : b))
+      saveBindings(next)
+      return next
+    })
+  }, [])
+
+  const resetBindings = useCallback(() => {
+    localStorage.removeItem('taw.keybindings')
+    setBindings(loadBindings())
+  }, [])
 
   // --- sidebar resize (drag handle) ---
   const startResize = useCallback((e: React.MouseEvent) => {
@@ -354,8 +379,17 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
           <span className="rt-kbd">⌘B</span>
         </button>
         <div className="rail-spacer" />
-        <div className="rail-ic">⚙</div>
+        <button className="rail-ic" title="Keyboard shortcuts" onClick={() => setShowKeybindings(true)}>⚙</button>
       </div>
+
+      {showKeybindings && (
+        <KeybindingsModal
+          bindings={bindings}
+          onChange={rebind}
+          onReset={resetBindings}
+          onClose={() => setShowKeybindings(false)}
+        />
+      )}
 
       {/* Floating restore pill when the sidebar is hidden */}
       {sidebarHidden && (
