@@ -52,6 +52,16 @@ export function PiIcon({ size = 14, className }: IconProps) {
   )
 }
 
+/** tawx — the ▟▙ twin-block mark from the harness banner */
+export function TawxIcon({ size = 14, className }: IconProps) {
+  return (
+    <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M3 20 L11 20 L11 5 Z" />
+      <path d="M21 20 L13 20 L13 5 Z" />
+    </svg>
+  )
+}
+
 /** Codex — OpenAI-style six-petal blossom */
 export function CodexIcon({ size = 14, className }: IconProps) {
   const petals = Array.from({ length: 6 }, (_, i) => {

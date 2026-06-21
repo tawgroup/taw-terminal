@@ -570,7 +570,7 @@ html, body, #root {
   white-space: nowrap;
 }
 /* All folder-header icon buttons share one clean, transparent look */
-.folder-add, .folder-claude, .folder-codex, .folder-pi, .folder-rm {
+.folder-add, .folder-claude, .folder-codex, .folder-pi, .folder-tawx, .folder-rm {
   width: 24px;
   height: 24px;
   flex-shrink: 0;
@@ -586,13 +586,14 @@ html, body, #root {
   opacity: 0.75;
   padding: 0;
 }
-.folder-add:hover, .folder-claude:hover, .folder-codex:hover, .folder-pi:hover, .folder-rm:hover {
+.folder-add:hover, .folder-claude:hover, .folder-codex:hover, .folder-pi:hover, .folder-tawx:hover, .folder-rm:hover {
   background: var(--hover);
   opacity: 1;
 }
 .folder-claude { color: #d97757; margin-left: auto; }
 .folder-codex { color: #10a37f; }
 .folder-pi { color: #a78bfa; }
+.folder-tawx { color: #22d3ee; }
 .folder-add { color: var(--accent); }
 .folder-rm { opacity: 0; font-size: 12px; }
 .folder-head:hover .folder-rm { opacity: 0.6; }
@@ -601,6 +602,7 @@ html, body, #root {
 .term-kind-ic.claude { color: #d97757; }
 .term-kind-ic.codex { color: #10a37f; }
 .term-kind-ic.pi { color: #a78bfa; }
+.term-kind-ic.tawx { color: #22d3ee; }
 .term-kind-ic.shell { color: #60a5fa; opacity: 0.85; }
 
 /* Always-on ⌘N jump hint (right-side pill) */
@@ -722,6 +724,7 @@ html, body, #root {
 .terms-empty.claude:hover { border-color: #d97757; color: #d97757; }
 .terms-empty.codex:hover { border-color: #10a37f; color: #10a37f; }
 .terms-empty.pi:hover { border-color: #a78bfa; color: #a78bfa; }
+.terms-empty.tawx:hover { border-color: #22d3ee; color: #22d3ee; }
 
 .ws-addrow {
   width: 100%;
@@ -763,6 +766,8 @@ html, body, #root {
 .u-ic { display: inline-flex; align-items: center; }
 .u-ic.claude { color: #d97757; }
 .u-ic.codex { color: #10a37f; }
+.u-ic.pi { color: #a78bfa; }
+.u-ic.tawx { color: #22d3ee; }
 .u-name { width: 48px; opacity: 0.85; }
 .u-tok { margin-left: auto; opacity: 0.95; font-family: "JetBrains Mono", monospace; }
 .u-cost { width: 64px; text-align: right; opacity: 0.6; font-family: "JetBrains Mono", monospace; }
@@ -864,6 +869,7 @@ html, body, #root {
 .ws-tab-ic.claude { color: #d97757; }
 .ws-tab-ic.codex { color: #10a37f; }
 .ws-tab-ic.pi { color: #a78bfa; }
+.ws-tab-ic.tawx { color: #22d3ee; }
 .ws-tab-x {
   background: none;
   border: none;
@@ -891,6 +897,7 @@ html, body, #root {
 .ws-tab-add.claude { color: #d97757; }
 .ws-tab-add.codex { color: #10a37f; }
 .ws-tab-add.pi { color: #a78bfa; }
+.ws-tab-add.tawx { color: #22d3ee; }
 
 .ws-toolbar {
   display: flex;

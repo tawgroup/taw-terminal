@@ -3,10 +3,10 @@
  * Each folder is a saved path; clicking + spawns a terminal rooted in that path.
  */
 import { useState } from 'react'
-import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon } from './icons'
+import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon, TawxIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 
-export type TermKind = 'shell' | 'claude' | 'codex' | 'pi'
+export type TermKind = 'shell' | 'claude' | 'codex' | 'pi' | 'tawx'
 
 export interface Term {
   id: string
@@ -40,6 +40,7 @@ interface Props {
   onAddClaude: (workspaceId: string) => void
   onAddCodex: (workspaceId: string) => void
   onAddPi: (workspaceId: string) => void
+  onAddTawx: (workspaceId: string) => void
   onSelectTerminal: (id: string) => void
   onCloseTerminal: (id: string) => void
   onRenameTerminal: (id: string, name: string) => void
@@ -69,7 +70,7 @@ function splitPath(p: string, home: string): { parent: string; base: string } {
 
 export function WorkspaceSidebar({
   workspaces, activeId, busy, home, query, onQuery,
-  onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex, onAddPi,
+  onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex, onAddPi, onAddTawx,
   onSelectTerminal, onCloseTerminal, onRenameTerminal, usage, version, update, onOpenReleases,
   onUpdate, updating, hotkeyIndex
 }: Props) {
@@ -128,6 +129,7 @@ export function WorkspaceSidebar({
                 <button className="folder-claude" title="New Claude Code session here" onClick={() => onAddClaude(ws.id)}><ClaudeIcon size={13} /></button>
                 <button className="folder-codex" title="New Codex session here" onClick={() => onAddCodex(ws.id)}><CodexIcon size={13} /></button>
                 <button className="folder-pi" title="New PI session here" onClick={() => onAddPi(ws.id)}><PiIcon size={13} /></button>
+                <button className="folder-tawx" title="New tawx session here" onClick={() => onAddTawx(ws.id)}><TawxIcon size={13} /></button>
                 <button className="folder-add" title="New terminal here" onClick={() => onAddTerminal(ws.id)}>+</button>
                 <button className="folder-rm" title="Remove folder" onClick={() => onRemoveFolder(ws.id)}>🗑</button>
               </div>
@@ -148,6 +150,7 @@ export function WorkspaceSidebar({
                         {t.kind === 'claude' && <span className="term-kind-ic claude" title="Claude Code"><ClaudeIcon size={12} /></span>}
                         {t.kind === 'codex' && <span className="term-kind-ic codex" title="Codex"><CodexIcon size={12} /></span>}
                         {t.kind === 'pi' && <span className="term-kind-ic pi" title="PI"><PiIcon size={12} /></span>}
+                        {t.kind === 'tawx' && <span className="term-kind-ic tawx" title="tawx"><TawxIcon size={12} /></span>}
                         {t.kind === 'shell' && <span className="term-kind-ic shell" title="Terminal"><TerminalIcon size={12} /></span>}
                         {editingId === t.id ? (
                           <input
@@ -195,6 +198,9 @@ export function WorkspaceSidebar({
                       <button className="terms-empty pi" onClick={() => onAddPi(ws.id)}>
                         <PiIcon size={12} /> PI
                       </button>
+                      <button className="terms-empty tawx" onClick={() => onAddTawx(ws.id)}>
+                        <TawxIcon size={12} /> tawx
+                      </button>
                     </div>
                   )}
                 </div>
@@ -209,7 +215,7 @@ export function WorkspaceSidebar({
       </div>
 
       {usage && (
-        <div className="ws-usage" title="Token usage today (from ~/.claude and ~/.codex)">
+        <div className="ws-usage" title="Token usage today (from ~/.claude, ~/.codex, ~/.pi and ~/.tawx)">
           <div className="ws-usage-head">Today's usage</div>
           <div className="ws-usage-row">
             <span className="u-ic claude"><ClaudeIcon size={12} /></span>
@@ -222,6 +228,18 @@ export function WorkspaceSidebar({
             <span className="u-name">Codex</span>
             <span className="u-tok">{fmtTok(usage.codex.tokens)}</span>
             <span className="u-cost">~${usage.codex.cost.toFixed(2)}</span>
+          </div>
+          <div className="ws-usage-row">
+            <span className="u-ic pi"><PiIcon size={12} /></span>
+            <span className="u-name">PI</span>
+            <span className="u-tok">{fmtTok(usage.pi.tokens)}</span>
+            <span className="u-cost">~${usage.pi.cost.toFixed(2)}</span>
+          </div>
+          <div className="ws-usage-row">
+            <span className="u-ic tawx"><TawxIcon size={12} /></span>
+            <span className="u-name">tawx</span>
+            <span className="u-tok">{fmtTok(usage.tawx.tokens)}</span>
+            <span className="u-cost">~${usage.tawx.cost.toFixed(2)}</span>
           </div>
         </div>
       )}

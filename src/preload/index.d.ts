@@ -28,7 +28,7 @@ export interface AppAPI {
 export interface PersistedTerm {
   name: string
   cwd: string
-  kind?: 'shell' | 'claude' | 'codex' | 'pi'
+  kind?: 'shell' | 'claude' | 'codex' | 'pi' | 'tawx'
   claudeSessionId?: string
 }
 
@@ -62,10 +62,12 @@ export interface UsageStat {
 export interface UsageSnapshot {
   claude: UsageStat
   codex: UsageStat
+  pi: UsageStat
+  tawx: UsageStat
 }
 
 export interface UsageAPI {
-  /** Aggregate today's token usage/cost from ~/.claude and ~/.codex */
+  /** Aggregate today's token usage/cost from ~/.claude, ~/.codex, ~/.pi and ~/.tawx */
   get: () => Promise<UsageSnapshot>
 }
 

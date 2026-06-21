@@ -44,6 +44,7 @@ You (keystrokes) ─→ Xterm.js ─→ IPC ─→ PTY Manager ─→ Shell (zsh
 - **Custom fonts** — JetBrains Mono, Fira Code, SF Mono
 - **Auto-restart** — crashed shell sessions recover automatically (up to 3 retries)
 - **Native macOS feel** — hidden title bar with traffic lights, drag region
+- **Today's AI usage footer** — reads local Claude Code/Codex logs and shows today's token/cost estimate
 
 ## Install (macOS, Apple Silicon)
 
@@ -55,6 +56,21 @@ curl -fsSL https://raw.githubusercontent.com/tawgroup/taw-terminal/main/install.
 
 Or grab the `.dmg` from [Releases](https://github.com/tawgroup/taw-terminal/releases) and drag it into Applications. The app shows its version and checks for updates in the sidebar footer.
 
+## Coding Agents
+
+TawTerminal launches four coding agents directly from the sidebar or top tab bar (each folder's row has a button per agent, color-coded). The agents are **separate CLIs** you install once — TawTerminal just spawns them in a terminal rooted at the folder. Install whichever you want:
+
+| Agent | Install | First-run login | Shortcut |
+|-------|---------|-----------------|----------|
+| **Claude Code** | `curl -fsSL https://claude.ai/install.sh \| bash`  _(or `npm i -g @anthropic-ai/claude-code`)_ | run `claude`, sign in with your Anthropic / Claude subscription | `Cmd+Shift+C` |
+| **Codex** | `npm i -g @openai/codex` | run `codex`, sign in with your ChatGPT Plus/Pro account | `Cmd+Shift+X` |
+| **PI** | `npm i -g @earendil-works/pi-coding-agent`  _(needs Node ≥ 22.19)_ | run `pi`, follow the auth prompt | `Cmd+Shift+P` |
+| **tawx** (`tx`) | `npm i -g tawx-harness`  _(or `curl -fsSL https://raw.githubusercontent.com/tawgroup/tawx-harness/main/install.sh \| bash`)_ | run `tawx login` — pick provider: opencode / codex / claude | `Cmd+Shift+A` |
+
+After installing, click the agent's button in the sidebar (or press its shortcut) to start a session in the active folder. Sessions are restored on the next launch (`claude --resume`, `codex resume --last`, `pi --continue`, `tawx resume`).
+
+> **tawx** is TAW Group's own tiny, zero-dependency agent harness — a model, a short loop, and a few local tools. It supports a standing-goal mode (`/goal <objective>`) that keeps working until the objective is judged complete. See [tawx-harness](https://github.com/tawgroup/tawx-harness).
+
 ## Quick Start (from source)
 
 ```bash
@@ -63,14 +79,32 @@ npm run rebuild   # Build native module (node-pty)
 npm run dev       # Start development
 ```
 
+## Usage Footer
+
+The sidebar footer estimates today's Claude Code and Codex usage from local logs (`~/.claude/projects/**/*.jsonl` and `~/.codex/sessions/...`). It mirrors [`ccusage`](https://github.com/ryoppippi/ccusage):
+
+- **Date grouping** — entries are grouped by **local** calendar date (matching `ccusage daily`'s default), not UTC.
+- **De-duplication** — duplicated Claude Code rows are counted once by `message.id + requestId`; rows missing either ID are still counted because they cannot be proven duplicates.
+- **Tokens** — total includes input, output, cache-creation, and cache-read tokens. Cache reads typically dominate (often 95%+), so the headline token count is large by nature.
+- **Pricing** — fetched live from [LiteLLM's price table](https://github.com/BerriAI/litellm/blob/main/model_prices_and_context_window.json) (the same source `ccusage` uses), cached to `~/.taw-terminal/pricing-cache.json` for 24h with an offline fallback snapshot. This matters: hardcoded prices previously read ~4× high because legacy Opus-4.1 rates were applied to the much cheaper Opus-4.8. Cost is an estimate, not an official bill.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd+T` | New tab |
+| `Cmd+Shift+T` | New terminal in active folder |
 | `Cmd+W` | Close tab |
 | `Cmd+D` | Split pane |
 | `Cmd+Shift+D` | Toggle split direction (horizontal/vertical) |
+| `Cmd+B` | Toggle sidebar |
+| `Cmd+Shift+C` | New Claude Code session |
+| `Cmd+Shift+X` | New Codex session |
+| `Cmd+Shift+P` | New PI session |
+| `Cmd+Shift+A` | New tawx session |
+| `Cmd+1`–`Cmd+9` | Jump to the Nth terminal |
+
+All agent/terminal shortcuts are configurable in the in-app keybindings settings.
 
 ## Build from Source
 

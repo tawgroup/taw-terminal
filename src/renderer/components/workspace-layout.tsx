@@ -7,7 +7,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { TerminalInstance } from './terminal-instance'
 import { WorkspaceSidebar, Workspace, Term, TermKind } from './workspace-sidebar'
-import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon } from './icons'
+import { ClaudeIcon, CodexIcon, TerminalIcon, PiIcon, TawxIcon } from './icons'
 import type { UsageSnapshot, UpdateInfo } from '../../preload/index.d'
 import { KeybindingsModal } from './keybindings-modal'
 import { Binding, loadBindings, saveBindings, eventToCombo } from '../lib/keybindings'
@@ -92,6 +92,14 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         name: `PI ${termCounter}`,
         initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir}${MOUSE_RESET}`
       }
+    } else if (kind === 'tawx') {
+      // tawx generates its own timestamped session id (no pre-assign, like Codex),
+      // so restore uses `tawx resume` (newest session). tawx auto-approves by default.
+      term = {
+        id, cwd: path, kind: 'tawx',
+        name: `tawx ${termCounter}`,
+        initialCommand: `tawx${MOUSE_RESET}`
+      }
     } else {
       term = { id, cwd: path, kind: 'shell', name: `Terminal ${termCounter}` }
     }
@@ -153,6 +161,13 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 id, name: t.name, cwd, kind: 'pi' as const,
                 sessionId: sid,
                 initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir} --continue${MOUSE_RESET}`
+              }
+            }
+            if (t.kind === 'tawx') {
+              // tawx has no fixed id; resume the most recent session (like Codex)
+              return {
+                id, name: t.name, cwd, kind: 'tawx' as const,
+                initialCommand: `tawx resume${MOUSE_RESET}`
               }
             }
             return { id, name: t.name, cwd, kind: 'shell' as const }
@@ -302,6 +317,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         case 'newClaude': if (ws) spawnTerminal(ws.id, ws.path, 'claude'); break
         case 'newCodex': if (ws) spawnTerminal(ws.id, ws.path, 'codex'); break
         case 'newPi': if (ws) spawnTerminal(ws.id, ws.path, 'pi'); break
+        case 'newTawx': if (ws) spawnTerminal(ws.id, ws.path, 'tawx'); break
         case 'closeTerminal': if (activeId) removeTerminal(activeId); break
         case 'toggleSidebar': setSidebarHidden(h => !h); break
       }
@@ -428,6 +444,10 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
           const ws = workspaces.find(w => w.id === wsId)
           if (ws) spawnTerminal(ws.id, ws.path, 'pi')
         }}
+        onAddTawx={(wsId) => {
+          const ws = workspaces.find(w => w.id === wsId)
+          if (ws) spawnTerminal(ws.id, ws.path, 'tawx')
+        }}
         onSelectTerminal={setActiveId}
         onCloseTerminal={removeTerminal}
         onRenameTerminal={renameTerminal}
@@ -464,7 +484,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               onClick={() => setActiveId(t.id)}
             >
               <span className={`ws-tab-ic ${t.kind}`}>
-                {t.kind === 'claude' ? <ClaudeIcon size={13} /> : t.kind === 'codex' ? <CodexIcon size={13} /> : t.kind === 'pi' ? <PiIcon size={13} /> : <TerminalIcon size={13} />}
+                {t.kind === 'claude' ? <ClaudeIcon size={13} /> : t.kind === 'codex' ? <CodexIcon size={13} /> : t.kind === 'pi' ? <PiIcon size={13} /> : t.kind === 'tawx' ? <TawxIcon size={13} /> : <TerminalIcon size={13} />}
               </span>
               <span>{t.name}</span>
               <button className="ws-tab-x" title="Close terminal (⌘W)" onClick={(e) => { e.stopPropagation(); removeTerminal(t.id) }}>×</button>
@@ -492,6 +512,11 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 title="New PI session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'pi')}
               ><PiIcon size={14} /></button>
+              <button
+                className="ws-tab-add tawx"
+                title="New tawx session"
+                onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'tawx')}
+              ><TawxIcon size={14} /></button>
             </>
           )}
         </div>

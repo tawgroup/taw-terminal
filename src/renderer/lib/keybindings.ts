@@ -13,6 +13,7 @@ export const DEFAULT_BINDINGS: Binding[] = [
   { id: 'newClaude', label: 'New Claude session', combo: 'Cmd+Shift+C' },
   { id: 'newCodex', label: 'New Codex session', combo: 'Cmd+Shift+X' },
   { id: 'newPi', label: 'New PI session', combo: 'Cmd+Shift+P' },
+  { id: 'newTawx', label: 'New tawx session', combo: 'Cmd+Shift+A' },
   { id: 'closeTerminal', label: 'Close terminal', combo: 'Cmd+W' },
   { id: 'toggleSidebar', label: 'Toggle sidebar', combo: 'Cmd+B' }
 ]
