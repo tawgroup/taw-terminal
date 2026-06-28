@@ -663,6 +663,18 @@ function getRemoteServer(): RemoteServer {
   return remoteServer
 }
 
+// Is cloudflared on PATH? Used to guide the user before enabling the tunnel.
+ipcMain.handle('remote:checkTunnel', async () => {
+  const { execFile } = await import('child_process')
+  const [cmd, cmdArgs]: [string, string[]] =
+    process.platform === 'win32' ? ['where', ['cloudflared']] : ['sh', ['-lc', 'command -v cloudflared']]
+  return await new Promise<{ installed: boolean }>((resolve) => {
+    execFile(cmd, cmdArgs, (err, stdout) => {
+      resolve({ installed: !err && !!String(stdout).trim() })
+    })
+  })
+})
+
 ipcMain.handle('remote:status', () => getRemoteServer().status())
 ipcMain.handle('remote:start', (_, opts?: { tunnel?: boolean }) => getRemoteServer().start(opts || {}))
 ipcMain.handle('remote:stop', async () => { await getRemoteServer().stop(); return getRemoteServer().status() })

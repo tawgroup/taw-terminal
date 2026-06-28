@@ -52,5 +52,6 @@ contextBridge.exposeInMainWorld('limits', {
 contextBridge.exposeInMainWorld('remote', {
   status: () => ipcRenderer.invoke('remote:status'),
   start: (opts?: { tunnel?: boolean }) => ipcRenderer.invoke('remote:start', opts),
-  stop: () => ipcRenderer.invoke('remote:stop')
+  stop: () => ipcRenderer.invoke('remote:stop'),
+  checkTunnel: () => ipcRenderer.invoke('remote:checkTunnel')
 })

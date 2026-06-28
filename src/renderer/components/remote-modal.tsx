@@ -14,6 +14,10 @@ export function RemoteModal({ onClose }: Props) {
   const [tunnel, setTunnel] = useState(false)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [cfCopied, setCfCopied] = useState(false)
+  const [cloudflared, setCloudflared] = useState<boolean | null>(null)
+
+  const BREW_CMD = 'brew install cloudflared'
 
   const refresh = useCallback(() => {
     window.remote.status().then(setStatus).catch(() => {})
@@ -21,10 +25,17 @@ export function RemoteModal({ onClose }: Props) {
 
   useEffect(() => {
     refresh()
+    window.remote.checkTunnel().then(r => setCloudflared(r.installed)).catch(() => setCloudflared(null))
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, refresh])
+
+  const copyBrew = () => {
+    navigator.clipboard.writeText(BREW_CMD).then(() => {
+      setCfCopied(true); setTimeout(() => setCfCopied(false), 1800)
+    }).catch(() => {})
+  }
 
   const start = async () => {
     setBusy(true)
@@ -61,10 +72,35 @@ export function RemoteModal({ onClose }: Props) {
               </p>
               <label className="rmt-opt">
                 <input type="checkbox" checked={tunnel} onChange={e => setTunnel(e.target.checked)} />
-                <span>Enable internet tunnel (uses <code>cloudflared</code> — use from anywhere)</span>
+                <span>
+                  Use from anywhere (internet tunnel via <code>cloudflared</code>)
+                  {tunnel && cloudflared === true && <span className="rmt-ok"> ✓ installed</span>}
+                </span>
               </label>
+
+              {tunnel && cloudflared === false && (
+                <div className="rmt-install">
+                  <div className="rmt-install-head">⚠ cloudflared isn't installed</div>
+                  <p>
+                    It's <b>free</b> and needs <b>no account</b> — it gives a temporary public link like
+                    {' '}<code>https://….trycloudflare.com</code>. Install it, then start:
+                  </p>
+                  <div className="rmt-cmd">
+                    <code>{BREW_CMD}</code>
+                    <button className={`rmt-copy ${cfCopied ? 'done' : ''}`} onClick={copyBrew}>{cfCopied ? '✓' : 'Copy'}</button>
+                  </div>
+                  <button className="rmt-link" onClick={() => window.app.openExternal('https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/')}>
+                    Other install methods ↗
+                  </button>
+                </div>
+              )}
+
               <button className="rmt-start" disabled={busy} onClick={start}>
-                {busy ? 'Starting…' : 'Start remote access'}
+                {busy
+                  ? 'Starting…'
+                  : tunnel && cloudflared === false
+                    ? 'Start on Wi-Fi only (no tunnel yet)'
+                    : 'Start remote access'}
               </button>
             </>
           )}
@@ -85,6 +121,12 @@ export function RemoteModal({ onClose }: Props) {
                   </div>
                 )}
                 {status?.tunnelError && <div className="rmt-warn">⚠ {status.tunnelError}</div>}
+                {status?.tunnelError && cloudflared === false && (
+                  <div className="rmt-cmd">
+                    <code>{BREW_CMD}</code>
+                    <button className={`rmt-copy ${cfCopied ? 'done' : ''}`} onClick={copyBrew}>{cfCopied ? '✓' : 'Copy'}</button>
+                  </div>
+                )}
               </div>
 
               <button className="rmt-stop" disabled={busy} onClick={stop}>

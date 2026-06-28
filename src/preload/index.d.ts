@@ -118,6 +118,7 @@ export interface RemoteAPI {
   status: () => Promise<RemoteStatus>
   start: (opts?: { tunnel?: boolean }) => Promise<RemoteStatus>
   stop: () => Promise<RemoteStatus>
+  checkTunnel: () => Promise<{ installed: boolean }>
 }
 
 declare global {
