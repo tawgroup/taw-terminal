@@ -53,5 +53,10 @@ contextBridge.exposeInMainWorld('remote', {
   status: () => ipcRenderer.invoke('remote:status'),
   start: (opts?: { tunnel?: boolean }) => ipcRenderer.invoke('remote:start', opts),
   stop: () => ipcRenderer.invoke('remote:stop'),
-  checkTunnel: () => ipcRenderer.invoke('remote:checkTunnel')
+  checkTunnel: () => ipcRenderer.invoke('remote:checkTunnel'),
+  onClients: (callback: (count: number) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, count: number) => callback(count)
+    ipcRenderer.on('remote:clients', handler)
+    return () => ipcRenderer.removeListener('remote:clients', handler)
+  }
 })

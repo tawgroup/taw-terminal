@@ -35,6 +35,25 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
     terminalRef.current?.focus()
   }, [])
 
+  // Keep the latest isActive readable from stable callbacks below.
+  const isActiveRef = useRef(isActive)
+  isActiveRef.current = isActive
+
+  // Re-fit to THIS window and push the size back to the (shared) PTY. A remote
+  // phone client fits the same PTY to its tiny screen; without re-asserting,
+  // the desktop stays squeezed at the phone's width — the program reflows to
+  // ~40 cols and everything crams into the left half. Only the active terminal
+  // is laid out (others are display:none → a fit would compute 0), so guard it.
+  const reassertSize = useCallback(() => {
+    if (!isActiveRef.current) return
+    requestAnimationFrame(() => {
+      if (!isActiveRef.current || !fitAddonRef.current || !terminalRef.current) return
+      fitAddonRef.current.fit()
+      const { cols, rows } = terminalRef.current
+      window.terminal.resize(id, cols, rows)
+    })
+  }, [id])
+
   // Initialize terminal once
   useEffect(() => {
     if (initializedRef.current || !containerRef.current) return
@@ -147,6 +166,17 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
     }
   }, [isActive, id])
 
+  // Re-assert our size when the desktop window regains focus or a remote phone
+  // client attaches/detaches (it shrinks the shared PTY to its screen size).
+  useEffect(() => {
+    window.addEventListener('focus', reassertSize)
+    const offClients = window.remote?.onClients?.(reassertSize)
+    return () => {
+      window.removeEventListener('focus', reassertSize)
+      offClients?.()
+    }
+  }, [reassertSize])
+
   // Resize observer
   useEffect(() => {
     if (!containerRef.current || !isActive) return
@@ -215,7 +245,7 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
         ref={containerRef}
         className="terminal-instance"
         style={{ height: '100%' }}
-        onClick={() => terminalRef.current?.focus()}
+        onClick={() => { terminalRef.current?.focus(); reassertSize() }}
         onPaste={handlePaste}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}

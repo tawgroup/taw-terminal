@@ -106,7 +106,14 @@ export class RemoteServer {
 
   constructor(
     private staticDir: string,
-    private rpc: RpcTable
+    private rpc: RpcTable,
+    /**
+     * Called whenever a remote (phone) client attaches or detaches, with the
+     * current client count. The desktop uses this to re-assert its own terminal
+     * size: a phone fits the SHARED pty to its small screen, so when it leaves
+     * (or joins) the desktop must re-fit or it stays squeezed at the phone width.
+     */
+    private onClientsChange?: (count: number) => void
   ) {}
 
   isRunning(): boolean {
@@ -237,7 +244,11 @@ export class RemoteServer {
 
   private onWsConnect(ws: WebSocket): void {
     this.clients.add(ws)
-    ws.on('close', () => this.clients.delete(ws))
+    this.onClientsChange?.(this.clients.size)
+    ws.on('close', () => {
+      this.clients.delete(ws)
+      this.onClientsChange?.(this.clients.size)
+    })
     ws.on('message', async (raw) => {
       let msg: { t: string; id?: number; method?: string; args?: unknown[] }
       try { msg = JSON.parse(raw.toString()) } catch { return }

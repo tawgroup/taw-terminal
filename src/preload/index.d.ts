@@ -119,6 +119,8 @@ export interface RemoteAPI {
   start: (opts?: { tunnel?: boolean }) => Promise<RemoteStatus>
   stop: () => Promise<RemoteStatus>
   checkTunnel: () => Promise<{ installed: boolean }>
+  /** Fires when a remote (phone) client attaches/detaches, with the live count. */
+  onClients: (callback: (count: number) => void) => () => void
 }
 
 declare global {

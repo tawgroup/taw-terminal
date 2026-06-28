@@ -658,7 +658,11 @@ let remoteServer: RemoteServer | null = null
 function getRemoteServer(): RemoteServer {
   if (!remoteServer) {
     // __dirname is out/main in the built app, so ../renderer is the bundled SPA.
-    remoteServer = new RemoteServer(join(__dirname, '../renderer'), rpc)
+    remoteServer = new RemoteServer(join(__dirname, '../renderer'), rpc, (count) => {
+      // A phone attaching/detaching fits the shared pty to its own screen.
+      // Tell the desktop so it re-asserts its own width (see terminal-instance).
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('remote:clients', count)
+    })
   }
   return remoteServer
 }
