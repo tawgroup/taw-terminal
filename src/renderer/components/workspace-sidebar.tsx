@@ -128,6 +128,15 @@ export function WorkspaceSidebar({
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  // Usage + rate-limit footer is collapsed by default; expand on demand. Persisted.
+  const [statsOpen, setStatsOpen] = useState(() => {
+    try { return localStorage.getItem('ws-stats-open') === '1' } catch { return false }
+  })
+  const toggleStats = () => setStatsOpen(v => {
+    const next = !v
+    try { localStorage.setItem('ws-stats-open', next ? '1' : '0') } catch { /* ignore */ }
+    return next
+  })
   const startRename = (t: Term) => { setEditingId(t.id); setEditValue(t.name) }
   const commitRename = () => {
     if (editingId && editValue.trim()) onRenameTerminal(editingId, editValue.trim())
@@ -267,49 +276,67 @@ export function WorkspaceSidebar({
         </button>
       </div>
 
-      {usage && (
-        <div className="ws-usage" title="Token usage today (from ~/.claude, ~/.codex, ~/.pi and ~/.tawx)">
-          <div className="ws-usage-head">Today's usage</div>
-          {agents.claude && (
-            <div className="ws-usage-row">
-              <span className="u-ic claude"><ClaudeIcon size={12} /></span>
-              <span className="u-name">Claude</span>
-              <span className="u-tok">{fmtTok(usage.claude.tokens)}</span>
-              <span className="u-cost">~${usage.claude.cost.toFixed(2)}</span>
-            </div>
-          )}
-          {agents.codex && (
-            <div className="ws-usage-row">
-              <span className="u-ic codex"><CodexIcon size={12} /></span>
-              <span className="u-name">Codex</span>
-              <span className="u-tok">{fmtTok(usage.codex.tokens)}</span>
-              <span className="u-cost">~${usage.codex.cost.toFixed(2)}</span>
-            </div>
-          )}
-          {agents.pi && (
-            <div className="ws-usage-row">
-              <span className="u-ic pi"><PiIcon size={12} /></span>
-              <span className="u-name">PI</span>
-              <span className="u-tok">{fmtTok(usage.pi.tokens)}</span>
-              <span className="u-cost">~${usage.pi.cost.toFixed(2)}</span>
-            </div>
-          )}
-          {agents.tawx && (
-            <div className="ws-usage-row">
-              <span className="u-ic tawx"><TawxIcon size={12} /></span>
-              <span className="u-name">tawx</span>
-              <span className="u-tok">{fmtTok(usage.tawx.tokens)}</span>
-              <span className="u-cost">~${usage.tawx.cost.toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-      )}
+      {(usage || (limits && ((agents.claude && limits.claude) || (agents.codex && limits.codex)))) && (
+        <div className="ws-stats">
+          <button
+            className="ws-stats-toggle"
+            onClick={toggleStats}
+            title={statsOpen ? 'Hide usage & rate limits' : 'Show usage & rate limits'}
+          >
+            <span className={`ws-stats-caret ${statsOpen ? 'open' : ''}`}>▸</span>
+            <span className="ws-stats-label">Usage &amp; limits</span>
+            {!statsOpen && usage && (
+              <span className="ws-stats-peek">
+                ~${(usage.claude.cost + usage.codex.cost + usage.pi.cost + usage.tawx.cost).toFixed(2)} today
+              </span>
+            )}
+          </button>
 
-      {limits && ((agents.claude && limits.claude) || (agents.codex && limits.codex)) && (
-        <div className="ws-limits" title="Rolling rate-limit usage (5h / weekly) — live from Claude & Codex APIs">
-          <div className="ws-usage-head">Rate limits</div>
-          {agents.claude && <ProviderLimitRows kind="Claude" icon={<ClaudeIcon size={12} />} data={limits.claude} />}
-          {agents.codex && <ProviderLimitRows kind="Codex" icon={<CodexIcon size={12} />} data={limits.codex} />}
+          {statsOpen && usage && (
+            <div className="ws-usage" title="Token usage today (from ~/.claude, ~/.codex, ~/.pi and ~/.tawx)">
+              <div className="ws-usage-head">Today's usage</div>
+              {agents.claude && (
+                <div className="ws-usage-row">
+                  <span className="u-ic claude"><ClaudeIcon size={12} /></span>
+                  <span className="u-name">Claude</span>
+                  <span className="u-tok">{fmtTok(usage.claude.tokens)}</span>
+                  <span className="u-cost">~${usage.claude.cost.toFixed(2)}</span>
+                </div>
+              )}
+              {agents.codex && (
+                <div className="ws-usage-row">
+                  <span className="u-ic codex"><CodexIcon size={12} /></span>
+                  <span className="u-name">Codex</span>
+                  <span className="u-tok">{fmtTok(usage.codex.tokens)}</span>
+                  <span className="u-cost">~${usage.codex.cost.toFixed(2)}</span>
+                </div>
+              )}
+              {agents.pi && (
+                <div className="ws-usage-row">
+                  <span className="u-ic pi"><PiIcon size={12} /></span>
+                  <span className="u-name">PI</span>
+                  <span className="u-tok">{fmtTok(usage.pi.tokens)}</span>
+                  <span className="u-cost">~${usage.pi.cost.toFixed(2)}</span>
+                </div>
+              )}
+              {agents.tawx && (
+                <div className="ws-usage-row">
+                  <span className="u-ic tawx"><TawxIcon size={12} /></span>
+                  <span className="u-name">tawx</span>
+                  <span className="u-tok">{fmtTok(usage.tawx.tokens)}</span>
+                  <span className="u-cost">~${usage.tawx.cost.toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {statsOpen && limits && ((agents.claude && limits.claude) || (agents.codex && limits.codex)) && (
+            <div className="ws-limits" title="Rolling rate-limit usage (5h / weekly) — live from Claude & Codex APIs">
+              <div className="ws-usage-head">Rate limits</div>
+              {agents.claude && <ProviderLimitRows kind="Claude" icon={<ClaudeIcon size={12} />} data={limits.claude} />}
+              {agents.codex && <ProviderLimitRows kind="Codex" icon={<CodexIcon size={12} />} data={limits.codex} />}
+            </div>
+          )}
         </div>
       )}
 

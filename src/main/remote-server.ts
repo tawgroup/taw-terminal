@@ -24,6 +24,24 @@ import { WebSocketServer, WebSocket } from 'ws'
 import QRCode from 'qrcode'
 import { terminalRegistry } from './terminal-registry'
 
+// GUI apps launched from Finder/Dock don't inherit the shell's PATH, so a
+// Homebrew-installed `cloudflared` (/opt/homebrew/bin on Apple Silicon) is
+// invisible to a plain `command -v`. Scan PATH plus the well-known install
+// dirs and return the absolute path, or null if it's genuinely not installed.
+export function resolveCloudflared(): string | null {
+  const isWin = process.platform === 'win32'
+  const bin = isWin ? 'cloudflared.exe' : 'cloudflared'
+  const sep = isWin ? ';' : ':'
+  const extraDirs = isWin ? [] : ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/opt/local/bin']
+  const dirs = [...(process.env.PATH || '').split(sep), ...extraDirs]
+  for (const d of dirs) {
+    if (!d) continue
+    const p = join(d, bin)
+    try { if (existsSync(p)) return p } catch { /* ignore */ }
+  }
+  return null
+}
+
 export type RpcTable = Record<string, (...args: any[]) => unknown | Promise<unknown>>
 
 export interface RemoteStatus {
@@ -252,9 +270,14 @@ export class RemoteServer {
   private startTunnel(): Promise<void> {
     return new Promise((resolve) => {
       this.tunnelError = null
+      const bin = resolveCloudflared()
+      if (!bin) {
+        this.tunnelError = 'cloudflared not installed. Install it (brew install cloudflared) for off-network access.'
+        return resolve()
+      }
       let child: ChildProcess
       try {
-        child = spawn('cloudflared', ['tunnel', '--no-autoupdate', '--url', `http://localhost:${this.port}`])
+        child = spawn(bin, ['tunnel', '--no-autoupdate', '--url', `http://localhost:${this.port}`])
       } catch {
         this.tunnelError = 'cloudflared not installed. Install it (brew install cloudflared) for off-network access.'
         return resolve()

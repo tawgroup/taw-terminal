@@ -765,6 +765,42 @@ html, body, #root {
 }
 .ws-addrow:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
 
+/* Collapsible stats footer (usage + rate limits) */
+.ws-stats { flex-shrink: 0; }
+.ws-stats-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 14px;
+  background: var(--panel2, rgba(0,0,0,0.18));
+  border: none;
+  border-top: 1px solid var(--border);
+  color: inherit;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.ws-stats-toggle:hover { background: var(--panel, rgba(0,0,0,0.28)); }
+.ws-stats-caret {
+  display: inline-block;
+  font-size: 9px;
+  opacity: 0.5;
+  transition: transform 0.15s ease;
+}
+.ws-stats-caret.open { transform: rotate(90deg); }
+.ws-stats-label { opacity: 0.45; }
+.ws-stats-peek {
+  margin-left: auto;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  opacity: 0.6;
+  font-family: "JetBrains Mono", monospace;
+}
+
 /* Usage footer (today's Claude/Codex tokens) */
 .ws-usage {
   flex-shrink: 0;

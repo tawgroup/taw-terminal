@@ -23,13 +23,22 @@ export function RemoteModal({ onClose }: Props) {
     window.remote.status().then(setStatus).catch(() => {})
   }, [])
 
+  const checkCloudflared = useCallback(() => {
+    window.remote.checkTunnel().then(r => setCloudflared(r.installed)).catch(() => setCloudflared(null))
+  }, [])
+
   useEffect(() => {
     refresh()
-    window.remote.checkTunnel().then(r => setCloudflared(r.installed)).catch(() => setCloudflared(null))
+    checkCloudflared()
+    // Re-check on focus so installing cloudflared while this modal is open is picked up.
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, refresh])
+    window.addEventListener('focus', checkCloudflared)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('focus', checkCloudflared)
+    }
+  }, [onClose, refresh, checkCloudflared])
 
   const copyBrew = () => {
     navigator.clipboard.writeText(BREW_CMD).then(() => {

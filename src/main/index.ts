@@ -10,7 +10,7 @@ import { spawn } from 'child_process'
 import { PtyManager } from './pty-manager'
 import { getLimits } from './limits'
 import { terminalRegistry } from './terminal-registry'
-import { RemoteServer, type RpcTable } from './remote-server'
+import { RemoteServer, resolveCloudflared, type RpcTable } from './remote-server'
 
 const ptyManager = new PtyManager()
 let mainWindow: BrowserWindow | null = null
@@ -663,17 +663,9 @@ function getRemoteServer(): RemoteServer {
   return remoteServer
 }
 
-// Is cloudflared on PATH? Used to guide the user before enabling the tunnel.
-ipcMain.handle('remote:checkTunnel', async () => {
-  const { execFile } = await import('child_process')
-  const [cmd, cmdArgs]: [string, string[]] =
-    process.platform === 'win32' ? ['where', ['cloudflared']] : ['sh', ['-lc', 'command -v cloudflared']]
-  return await new Promise<{ installed: boolean }>((resolve) => {
-    execFile(cmd, cmdArgs, (err, stdout) => {
-      resolve({ installed: !err && !!String(stdout).trim() })
-    })
-  })
-})
+// Is cloudflared installed? Used to guide the user before enabling the tunnel.
+// Scans PATH + known Homebrew dirs (GUI apps don't inherit the shell PATH).
+ipcMain.handle('remote:checkTunnel', () => ({ installed: !!resolveCloudflared() }))
 
 ipcMain.handle('remote:status', () => getRemoteServer().status())
 ipcMain.handle('remote:start', (_, opts?: { tunnel?: boolean }) => getRemoteServer().start(opts || {}))
