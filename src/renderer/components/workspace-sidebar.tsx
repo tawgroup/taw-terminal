@@ -96,9 +96,16 @@ function LimitBar({ kind, win }: { kind: string; win: LimitWindow }) {
   )
 }
 
+// Providers don't always report every window (e.g. Codex omits the 5h window
+// when it's inactive). Show a 0% placeholder for the missing slot instead of
+// hiding the row, so the 5h / 7d bars are always both visible.
+function orZero(win: LimitWindow | null, label: string): LimitWindow {
+  return win || { label, usedPercent: 0, resetAt: 0, resetMinutes: 0, status: 'inactive' }
+}
+
 function ProviderLimitRows({ kind, icon, data }: { kind: string; icon: ReactNode; data: ProviderLimits | undefined }) {
   if (!data) return null
-  const wins = [data.session5h, data.weekly7d].filter(Boolean) as LimitWindow[]
+  const wins = data.ok ? [orZero(data.session5h, '5h'), orZero(data.weekly7d, '7d')] : []
   return (
     <div className="lim-provider">
       <div className="lim-head-row">
