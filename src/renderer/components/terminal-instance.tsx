@@ -71,6 +71,16 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
       letterSpacing: 0.5,
       scrollback: 10000,
       allowProposedApi: true,
+      // OSC 8 escape-sequence hyperlinks (emitted by Claude Code / modern CLIs)
+      // are handled by xterm core, NOT the WebLinksAddon below. Without a
+      // linkHandler, core falls back to a confirm() + window.open() that opens
+      // the URL inside the Electron renderer ("the terminal's browser"). Route
+      // it through the OS default browser instead.
+      linkHandler: {
+        activate: (_event, uri) => {
+          window.app.openExternal(uri)
+        }
+      },
       theme: xtermTheme
     })
 
