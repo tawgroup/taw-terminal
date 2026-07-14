@@ -1,6 +1,6 @@
 {
   "name": "taw-terminal",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "A modern terminal with image paste, split panes, and beautiful themes",
   "main": "./out/main/index.js",
   "scripts": {
