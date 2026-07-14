@@ -67,8 +67,12 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
       fontSize: 14,
       fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Monaco, "Courier New", monospace',
       fontWeight: '400',
-      lineHeight: 1.3,
-      letterSpacing: 0.5,
+      // Bold at 600 (not the 700 default) and no extra tracking: long agent
+      // replies are markdown-bold-heavy, and 700 + spacing made every line
+      // shout. A touch more leading keeps dense text readable.
+      fontWeightBold: '600',
+      lineHeight: 1.35,
+      letterSpacing: 0,
       scrollback: 10000,
       allowProposedApi: true,
       // OSC 8 escape-sequence hyperlinks (emitted by Claude Code / modern CLIs)

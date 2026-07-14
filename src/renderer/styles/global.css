@@ -916,40 +916,50 @@ html, body, #root {
   min-height: 0;
 }
 
-/* Update banner (shown when a newer release exists) */
-.update-banner {
+/* Update notice: a small dismissible pill at the right edge of the tab row —
+   an available update is secondary info and must not outshine the work area. */
+.update-pill {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 9px 16px;
+  flex-shrink: 0;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.up-go {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
   border: none;
-  border-bottom: 1px solid rgba(52, 211, 153, 0.3);
-  background: linear-gradient(90deg, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.05));
-  color: #6ee7b7;
-  font-size: 12.5px;
+  background: none;
+  color: #34d399;
+  font-size: 11px;
   font-family: inherit;
   cursor: pointer;
-  text-align: left;
+  white-space: nowrap;
 }
-.update-banner:hover { background: rgba(52, 211, 153, 0.22); }
-.update-banner b { color: #fff; font-weight: 700; }
+.up-go:hover { background: rgba(52, 211, 153, 0.12); }
+.up-x {
+  border: none;
+  background: none;
+  color: #34d399;
+  opacity: 0.6;
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 8px 3px 4px;
+  cursor: pointer;
+}
+.up-x:hover { opacity: 1; }
 .ub-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #34d399;
-  box-shadow: 0 0 7px #34d399;
+  box-shadow: 0 0 6px #34d399;
   animation: dotpulse 1.2s ease-in-out infinite;
   flex-shrink: 0;
-}
-.ub-cta {
-  margin-left: auto;
-  border: 1px solid #34d399;
-  border-radius: 20px;
-  padding: 2px 11px;
-  font-weight: 600;
-  white-space: nowrap;
 }
 .ws-maintabs {
   display: flex;
@@ -1004,6 +1014,14 @@ html, body, #root {
 }
 .ws-tab-add { display: flex; align-items: center; justify-content: center; }
 .ws-tab-add:hover { opacity: 1; background: var(--hover); }
+/* Agent launchers carry their name — an icon alone doesn't say what it spawns */
+.ws-tab-add.agent {
+  width: auto;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 11.5px;
+}
+.wsa-name { line-height: 1; }
 .ws-tab-add.claude { color: #d97757; }
 .ws-tab-add.codex { color: #10a37f; }
 .ws-tab-add.pi { color: #a78bfa; }

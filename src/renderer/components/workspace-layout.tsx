@@ -389,6 +389,14 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
   }, [])
 
   const [showUpdateGuide, setShowUpdateGuide] = useState(false)
+  // The update notice is a small dismissible pill in the tab row (not a
+  // full-width banner) — dismissing remembers the version so only a NEWER
+  // release brings it back. The sidebar footer keeps its own update button.
+  const [dismissedUpdate, setDismissedUpdate] = useState(() => localStorage.getItem('taw.updateDismissed') || '')
+  const dismissUpdate = useCallback((ver: string) => {
+    localStorage.setItem('taw.updateDismissed', ver)
+    setDismissedUpdate(ver)
+  }, [])
   const openReleases = useCallback(() => {
     window.app.releasesUrl().then(u => window.app.openExternal(u)).catch(() => {})
   }, [])
@@ -594,14 +602,6 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
       {!sidebarHidden && <div className="ws-resizer" onMouseDown={startResize} />}
 
       <div className="ws-main">
-        {update?.hasUpdate && (
-          <button className="update-banner" onClick={doUpdate}>
-            <span className="ub-dot" />
-            New version <b>v{update.latest}</b> available — click to update
-            <span className="ub-cta">Update →</span>
-          </button>
-        )}
-
         {/* Top tab bar: terminals of the active workspace */}
         <div className="ws-maintabs">
           {activeWorkspace?.terminals.map(t => (
@@ -626,26 +626,35 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path)}
               >+</button>
               {agents.claude && <button
-                className="ws-tab-add claude"
+                className="ws-tab-add agent claude"
                 title="New Claude Code session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'claude')}
-              ><ClaudeIcon size={14} /></button>}
+              ><ClaudeIcon size={13} /><span className="wsa-name">Claude</span></button>}
               {agents.codex && <button
-                className="ws-tab-add codex"
+                className="ws-tab-add agent codex"
                 title="New Codex session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'codex')}
-              ><CodexIcon size={14} /></button>}
+              ><CodexIcon size={13} /><span className="wsa-name">Codex</span></button>}
               {agents.pi && <button
-                className="ws-tab-add pi"
+                className="ws-tab-add agent pi"
                 title="New PI session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'pi')}
-              ><PiIcon size={14} /></button>}
+              ><PiIcon size={13} /><span className="wsa-name">PI</span></button>}
               {agents.tawx && <button
-                className="ws-tab-add tawx"
+                className="ws-tab-add agent tawx"
                 title="New tawx session"
                 onClick={() => spawnTerminal(activeWorkspace.id, activeWorkspace.path, 'tawx')}
-              ><TawxIcon size={14} /></button>}
+              ><TawxIcon size={13} /><span className="wsa-name">tawx</span></button>}
             </>
+          )}
+          {update?.hasUpdate && update.latest && update.latest !== dismissedUpdate && (
+            <div className="update-pill">
+              <button className="up-go" title="How to update" onClick={doUpdate}>
+                <span className="ub-dot" />
+                v{update.latest} available
+              </button>
+              <button className="up-x" title="Dismiss until the next release" onClick={() => dismissUpdate(update.latest!)}>×</button>
+            </div>
           )}
         </div>
 
