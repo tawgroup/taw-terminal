@@ -121,6 +121,14 @@ export interface RemoteAPI {
   checkTunnel: () => Promise<{ installed: boolean }>
   /** Fires when a remote (phone) client attaches/detaches, with the live count. */
   onClients: (callback: (count: number) => void) => () => void
+  /** Desktop-owned session request forwarded from the phone remote. */
+  onNewSessionRequest: (callback: (request: {
+    requestId: string
+    workspacePath: string
+    kind: 'shell' | 'claude' | 'codex' | 'pi' | 'tawx'
+  }) => void) => () => void
+  /** Resolves the matching phone RPC after WorkspaceLayout has added the tab. */
+  resolveNewSession: (result: { requestId: string; id?: string; error?: string }) => void
 }
 
 /** Codex/tawx mint their own session id, so a terminal learns it from the transcript on disk. */

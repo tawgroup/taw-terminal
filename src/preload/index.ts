@@ -72,5 +72,13 @@ contextBridge.exposeInMainWorld('remote', {
     const handler = (_: Electron.IpcRendererEvent, count: number) => callback(count)
     ipcRenderer.on('remote:clients', handler)
     return () => ipcRenderer.removeListener('remote:clients', handler)
+  },
+  onNewSessionRequest: (callback: (request: { requestId: string; workspacePath: string; kind: string }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, request: { requestId: string; workspacePath: string; kind: string }) => callback(request)
+    ipcRenderer.on('remote:new-session', handler)
+    return () => ipcRenderer.removeListener('remote:new-session', handler)
+  },
+  resolveNewSession: (result: { requestId: string; id?: string; error?: string }) => {
+    ipcRenderer.send('remote:new-session:result', result)
   }
 })

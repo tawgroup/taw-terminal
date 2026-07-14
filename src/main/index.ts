@@ -7,6 +7,7 @@ import { join } from 'path'
 import os from 'os'
 import fs from 'fs'
 import { spawn } from 'child_process'
+import { randomUUID } from 'crypto'
 import { PtyManager } from './pty-manager'
 import { getLimits } from './limits'
 import { terminalRegistry } from './terminal-registry'
@@ -637,6 +638,47 @@ ipcMain.handle('limits:get', () => limitsSnapshot())
 
 // --- Remote (phone) access ---
 // Reuse the built renderer over HTTP + a WS bridge mirroring the IPC surface.
+type RemoteSessionKind = NonNullable<TermMeta['kind']>
+
+interface RemoteSessionResult {
+  requestId: string
+  id?: string
+  error?: string
+}
+
+const pendingRemoteSessions = new Map<string, {
+  resolve: (value: { id: string }) => void
+  reject: (reason: Error) => void
+  timer: ReturnType<typeof setTimeout>
+}>()
+
+ipcMain.on('remote:new-session:result', (_, result: RemoteSessionResult) => {
+  const pending = pendingRemoteSessions.get(result?.requestId)
+  if (!pending) return
+  clearTimeout(pending.timer)
+  pendingRemoteSessions.delete(result.requestId)
+  if (result.error || !result.id) pending.reject(new Error(result.error || 'Desktop did not create the session.'))
+  else pending.resolve({ id: result.id })
+})
+
+function requestDesktopSession(workspacePath: string, kind: RemoteSessionKind): Promise<{ id: string }> {
+  const allowedKinds: RemoteSessionKind[] = ['shell', 'claude', 'codex', 'pi', 'tawx']
+  if (!workspacePath || typeof workspacePath !== 'string') return Promise.reject(new Error('Choose a workspace first.'))
+  if (!allowedKinds.includes(kind)) return Promise.reject(new Error('Unsupported session type.'))
+  const desktop = mainWindow
+  if (!desktop || desktop.isDestroyed()) return Promise.reject(new Error('The desktop workspace is not ready.'))
+
+  return new Promise((resolve, reject) => {
+    const requestId = randomUUID()
+    const timer = setTimeout(() => {
+      pendingRemoteSessions.delete(requestId)
+      reject(new Error('Desktop session creation timed out.'))
+    }, 8000)
+    pendingRemoteSessions.set(requestId, { resolve, reject, timer })
+    desktop.webContents.send('remote:new-session', { requestId, workspacePath, kind })
+  })
+}
+
 const rpc: RpcTable = {
   'terminal:create': (id: string, cwd?: string, meta?: TermMeta) => {
     // A remote client attaching to an ALREADY-live session must not respawn it
@@ -655,12 +697,20 @@ const rpc: RpcTable = {
   },
   'terminal:write': (id: string, data: string) => { ptyManager.write(id, data) },
   'terminal:resize': (id: string, cols: number, rows: number) => { ptyManager.resize(id, cols, rows) },
+  // Let the desktop xterm reclaim its preferred size after phone terminal mode
+  // closes. TerminalInstance already re-fits on this existing notification.
+  'terminal:releaseResize': () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('remote:clients', -1)
+  },
   'terminal:kill': (id: string) => { ptyManager.kill(id); terminalRegistry.remove(id) },
   'terminal:rename': (id: string, name: string) => { terminalRegistry.rename(id, name) },
   'terminal:getCwd': (id: string) => ptyManager.getCwd(id),
   'terminal:getShellName': () => ptyManager.getShellName(),
   'session:list': () => terminalRegistry.list(),
   'session:buffer': (id: string) => terminalRegistry.buffer(id),
+  // Session creation must be owned by the desktop React workspace so it is
+  // visible, resumable, and persisted there — never as an orphan phone PTY.
+  'session:create': (workspacePath: string, kind: RemoteSessionKind) => requestDesktopSession(workspacePath, kind),
   'app:getTheme': () => (nativeTheme.shouldUseDarkColors ? 'dark' : 'light'),
   'app:getHome': () => os.homedir(),
   'app:getVersion': () => app.getVersion(),

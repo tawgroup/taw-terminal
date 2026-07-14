@@ -129,7 +129,35 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
       w.id === wsId ? { ...w, collapsed: false, terminals: [...w.terminals, term] } : w
     ))
     setActiveId(id)
+    return id
   }, [])
+
+  // A phone can request a new session, but the desktop workspace remains the
+  // owner. Reusing spawnTerminal keeps the new tab visible, persisted, and
+  // resumable instead of creating an orphan PTY in the main process.
+  useEffect(() => {
+    const off = window.remote.onNewSessionRequest(({ requestId, workspacePath, kind }) => {
+      const workspace = workspaces.find(w => w.path === workspacePath)
+      if (!workspace) {
+        window.remote.resolveNewSession({ requestId, error: 'Workspace is no longer open on the desktop.' })
+        return
+      }
+      if (kind !== 'shell' && !agents[kind]) {
+        window.remote.resolveNewSession({ requestId, error: `${kind} is disabled in desktop settings.` })
+        return
+      }
+      try {
+        const id = spawnTerminal(workspace.id, workspace.path, kind)
+        window.remote.resolveNewSession({ requestId, id })
+      } catch (error) {
+        window.remote.resolveNewSession({
+          requestId,
+          error: error instanceof Error ? error.message : 'Could not create the desktop session.'
+        })
+      }
+    })
+    return off
+  }, [agents, spawnTerminal, workspaces])
 
   // --- init: restore saved session (folders + terminals), or seed with home ---
   useEffect(() => {
