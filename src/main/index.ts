@@ -10,6 +10,7 @@ import { spawn } from 'child_process'
 import { PtyManager } from './pty-manager'
 import { getLimits } from './limits'
 import { terminalRegistry } from './terminal-registry'
+import { agentSessions, type SessionKind } from './agent-sessions'
 import { RemoteServer, resolveCloudflared, type RpcTable } from './remote-server'
 
 const ptyManager = new PtyManager()
@@ -82,6 +83,7 @@ ipcMain.on('terminal:resize', (_, id: string, cols: number, rows: number) => {
 ipcMain.handle('terminal:kill', (_, id: string) => {
   ptyManager.kill(id)
   terminalRegistry.remove(id)
+  agentSessions.unwatch(id)
 })
 
 ipcMain.handle('terminal:getCwd', async (_, id: string) => {
@@ -216,6 +218,26 @@ async function gitBranchOf(cwd: string): Promise<string | null> {
 ipcMain.handle('workspaces:load', () => loadWorkspaces())
 ipcMain.handle('workspaces:save', (_, state: unknown) => saveWorkspaces(state))
 ipcMain.handle('git:branch', (_, cwd: string) => gitBranchOf(cwd))
+
+// --- Agent sessions (Codex/tawx: id is only knowable after the agent starts) ---
+
+agentSessions.init((termId, sessionId) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('agent:session', { id: termId, sessionId })
+  }
+})
+
+ipcMain.on('agent:watch', (_, id: string, kind: SessionKind, cwd: string) => {
+  agentSessions.watch(id, kind, cwd)
+})
+ipcMain.on('agent:claim', (_, id: string, kind: SessionKind, cwd: string, sessionId: string) => {
+  agentSessions.claim(id, kind, cwd, sessionId)
+})
+ipcMain.on('agent:unwatch', (_, id: string) => agentSessions.unwatch(id))
+ipcMain.on('agent:active', (_, id: string | null) => agentSessions.setActive(id))
+ipcMain.handle('agent:adopt', (_, reqs: { termId: string; kind: SessionKind; cwd: string }[]) =>
+  agentSessions.adopt(reqs)
+)
 
 // --- Usage tracking (today's tokens/cost from Claude Code & Codex) ---
 

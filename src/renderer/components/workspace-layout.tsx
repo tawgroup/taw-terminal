@@ -23,6 +23,19 @@ const nextTermId = () => `term-${++termCounter}`
 // Appending this resets mouse-tracking modes once the AI process exits.
 const MOUSE_RESET = "; printf '\\033[?1000l\\033[?1002l\\033[?1003l\\033[?1006l\\033[?1015l\\033[?1005l\\033[?1004l'"
 
+/** Agents that mint their own session id; the terminal learns it from disk after start. */
+type SessionKind = 'codex' | 'tawx'
+
+const freshCmd = (kind: SessionKind) =>
+  kind === 'codex'
+    ? `codex --dangerously-bypass-approvals-and-sandbox${MOUSE_RESET}`
+    : `tawx${MOUSE_RESET}`
+
+const resumeCmd = (kind: SessionKind, sid: string) =>
+  kind === 'codex'
+    ? `codex resume ${sid} --dangerously-bypass-approvals-and-sandbox${MOUSE_RESET}`
+    : `tawx resume ${sid}${MOUSE_RESET}`
+
 interface Props {
   onImagePaste?: (dataUrl: string) => void
 }
@@ -81,12 +94,14 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         initialCommand: `claude --session-id ${sessionId} --dangerously-skip-permissions${MOUSE_RESET}`
       }
     } else if (kind === 'codex') {
-      // Codex can't be given a session id up front, so restore uses `resume --last`.
+      // Codex mints its own id, so main watches the transcript dir and reports back
+      // which session this terminal started (see `agent:session` below).
       term = {
         id, cwd: path, kind: 'codex',
         name: `Codex ${termCounter}`,
-        initialCommand: `codex --dangerously-bypass-approvals-and-sandbox${MOUSE_RESET}`
+        initialCommand: freshCmd('codex')
       }
+      window.agentSession.watch(id, 'codex', path)
     } else if (kind === 'pi') {
       // pi's --session only RESUMES an existing session. Give each PI terminal
       // its own session dir so a fresh `pi` saves there and restore can
@@ -99,13 +114,14 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir}${MOUSE_RESET}`
       }
     } else if (kind === 'tawx') {
-      // tawx generates its own timestamped session id (no pre-assign, like Codex),
-      // so restore uses `tawx resume` (newest session). tawx auto-approves by default.
+      // Same as Codex: the id only exists once tawx writes its session file.
+      // tawx auto-approves by default.
       term = {
         id, cwd: path, kind: 'tawx',
         name: `tawx ${termCounter}`,
-        initialCommand: `tawx${MOUSE_RESET}`
+        initialCommand: freshCmd('tawx')
       }
+      window.agentSession.watch(id, 'tawx', path)
     } else {
       term = { id, cwd: path, kind: 'shell', name: `Terminal ${termCounter}` }
     }
@@ -128,6 +144,8 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
 
       let ws: Workspace[]
       let activeTermId: string | null = null
+      // Codex/tawx terminals saved without a session id (pre-0.2.6 sessions)
+      const pending: { termId: string; kind: SessionKind; cwd: string }[] = []
 
       if (saved && !Array.isArray(saved) && Array.isArray(saved.workspaces) && saved.workspaces.length) {
         // New format: rebuild folders + terminals. Shells are fresh but rooted
@@ -153,11 +171,23 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 initialCommand: `claude --resume ${sid} --dangerously-skip-permissions${MOUSE_RESET}`
               }
             }
-            if (t.kind === 'codex') {
-              // Codex has no fixed id; resume the most recent session
+            if (t.kind === 'codex' || t.kind === 'tawx') {
+              // Resume this terminal's OWN session by id. `codex resume --last` used
+              // to be the fallback here, which pointed every Codex terminal at the
+              // newest session and collapsed them all into one conversation.
+              // Terminals saved before ids were tracked have none yet; `pending`
+              // collects them and adopt() below gives each a distinct session.
+              const kind = t.kind
+              const sid = t.claudeSessionId
+              if (!sid) {
+                pending.push({ termId: id, kind, cwd })
+                return { id, name: t.name, cwd, kind, ...note }
+              }
+              window.agentSession.claim(id, kind, cwd, sid)
               return {
-                id, name: t.name, cwd, kind: 'codex' as const, ...note,
-                initialCommand: `codex resume --last${MOUSE_RESET}`
+                id, name: t.name, cwd, kind,
+                sessionId: sid, ...note,
+                initialCommand: resumeCmd(kind, sid)
               }
             }
             if (t.kind === 'pi' && t.claudeSessionId) {
@@ -170,16 +200,30 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
                 initialCommand: `mkdir -p ${dir} && pi --session-dir ${dir} --continue${MOUSE_RESET}`
               }
             }
-            if (t.kind === 'tawx') {
-              // tawx has no fixed id; resume the most recent session (like Codex)
-              return {
-                id, name: t.name, cwd, kind: 'tawx' as const, ...note,
-                initialCommand: `tawx resume${MOUSE_RESET}`
-              }
-            }
             return { id, name: t.name, cwd, kind: 'shell' as const, ...note }
           })
         }))
+
+        if (pending.length) {
+          // Newest transcript to the first terminal, next-newest to the second, and
+          // so on, so two Codex tabs never land on the same conversation.
+          const adopted = await window.agentSession.adopt(pending)
+          const byId = new Map(pending.map(p => [p.termId, p]))
+          ws = ws.map(w => ({
+            ...w,
+            terminals: w.terminals.map(t => {
+              const p = byId.get(t.id)
+              if (!p) return t
+              const sid = adopted[t.id]
+              if (sid) return { ...t, sessionId: sid, initialCommand: resumeCmd(p.kind, sid) }
+              // Nothing left to adopt (e.g. a tab whose agent never ran): start fresh
+              // and let the watcher bind whatever session it creates.
+              window.agentSession.watch(t.id, p.kind, t.cwd)
+              return { ...t, initialCommand: freshCmd(p.kind) }
+            })
+          }))
+        }
+
         const all = ws.flatMap(w => w.terminals.map(t => ({ t, path: w.path })))
         const match = saved.active && all.find(x => x.path === saved.active!.path && x.t.name === saved.active!.name)
         activeTermId = (match || all[0])?.t.id ?? null
@@ -219,6 +263,23 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
       }))
     })
   }, [workspaces, activeId])
+
+  // --- Codex/tawx: adopt the session id main read off the transcript the agent wrote ---
+  useEffect(() => {
+    const off = window.agentSession.onSession(({ id, sessionId }) => {
+      setWorkspaces(prev => prev.map(w => ({
+        ...w,
+        terminals: w.terminals.map(t => (t.id === id ? { ...t, sessionId } : t))
+      })))
+    })
+    return off
+  }, [])
+
+  // The focused terminal is the one whose agent is being started (or /new'd), so it
+  // gets first claim on a transcript that appears.
+  useEffect(() => {
+    window.agentSession.setActive(activeId)
+  }, [activeId])
 
   // --- busy indicator: a terminal is "running" if it emitted output recently ---
   useEffect(() => {

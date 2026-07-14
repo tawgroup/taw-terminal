@@ -123,6 +123,20 @@ export interface RemoteAPI {
   onClients: (callback: (count: number) => void) => () => void
 }
 
+/** Codex/tawx mint their own session id, so a terminal learns it from the transcript on disk. */
+export interface AgentSessionAPI {
+  /** Terminal just spawned an agent; bind it to the next transcript that appears. */
+  watch: (id: string, kind: 'codex' | 'tawx', cwd: string) => void
+  /** Restored terminal already owns this session; reserve it so no one else claims it. */
+  claim: (id: string, kind: 'codex' | 'tawx', cwd: string, sessionId: string) => void
+  unwatch: (id: string) => void
+  /** The focused terminal claims a new transcript first (it is what `/new` writes to). */
+  setActive: (id: string | null) => void
+  /** Give terminals saved before session tracking one distinct session each. */
+  adopt: (reqs: { termId: string; kind: 'codex' | 'tawx'; cwd: string }[]) => Promise<Record<string, string>>
+  onSession: (callback: (payload: { id: string; sessionId: string }) => void) => () => void
+}
+
 declare global {
   interface Window {
     terminal: TerminalAPI
@@ -131,5 +145,6 @@ declare global {
     usage: UsageAPI
     limits: LimitsAPI
     remote: RemoteAPI
+    agentSession: AgentSessionAPI
   }
 }

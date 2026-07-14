@@ -41,6 +41,20 @@ contextBridge.exposeInMainWorld('workspace', {
   gitBranch: (cwd: string) => ipcRenderer.invoke('git:branch', cwd)
 })
 
+contextBridge.exposeInMainWorld('agentSession', {
+  watch: (id: string, kind: string, cwd: string) => ipcRenderer.send('agent:watch', id, kind, cwd),
+  claim: (id: string, kind: string, cwd: string, sessionId: string) =>
+    ipcRenderer.send('agent:claim', id, kind, cwd, sessionId),
+  unwatch: (id: string) => ipcRenderer.send('agent:unwatch', id),
+  setActive: (id: string | null) => ipcRenderer.send('agent:active', id),
+  adopt: (reqs: { termId: string; kind: string; cwd: string }[]) => ipcRenderer.invoke('agent:adopt', reqs),
+  onSession: (callback: (payload: { id: string; sessionId: string }) => void) => {
+    const handler = (_: Electron.IpcRendererEvent, payload: { id: string; sessionId: string }) => callback(payload)
+    ipcRenderer.on('agent:session', handler)
+    return () => ipcRenderer.removeListener('agent:session', handler)
+  }
+})
+
 contextBridge.exposeInMainWorld('usage', {
   get: () => ipcRenderer.invoke('usage:get')
 })
