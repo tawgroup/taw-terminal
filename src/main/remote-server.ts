@@ -295,10 +295,22 @@ export class RemoteServer {
       }
       this.tunnel = child
       let settled = false
+      let registered = false
       const finish = () => { if (!settled) { settled = true; resolve() } }
+      // cloudflared prints the public URL ~10s BEFORE the tunnel is actually
+      // reachable at Cloudflare's edge (it emits "Registered tunnel connection"
+      // only once a datacenter connection is live). Opening the URL in that gap
+      // returns Cloudflare Error 1033. So capture the URL when it appears, but
+      // don't treat the tunnel as ready — and don't render the QR — until we see
+      // a registered connection.
       const onLine = (buf: Buffer) => {
-        const m = buf.toString().match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)
-        if (m) { this.tunnelUrl = m[0]; this.refreshQr().finally(finish) }
+        const text = buf.toString()
+        const m = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/i)
+        if (m && !this.tunnelUrl) this.tunnelUrl = m[0]
+        if (!registered && /Registered tunnel connection/i.test(text)) {
+          registered = true
+          this.refreshQr().finally(finish)
+        }
       }
       child.stdout?.on('data', onLine)
       child.stderr?.on('data', onLine)
@@ -306,9 +318,26 @@ export class RemoteServer {
         this.tunnelError = 'cloudflared not installed. Install it (brew install cloudflared) for off-network access.'
         finish()
       })
-      child.on('exit', () => { this.tunnel = null })
-      // Don't block startup forever if the tunnel is slow/unavailable.
-      setTimeout(() => { if (!this.tunnelUrl && !this.tunnelError) this.tunnelError = 'Tunnel timed out.'; finish() }, 12000)
+      child.on('exit', () => {
+        this.tunnel = null
+        // A tunnel that dies before it registers leaves a dead URL that only
+        // yields Error 1033 — drop it and surface the failure instead.
+        if (!registered) {
+          this.tunnelUrl = null
+          if (!this.tunnelError) this.tunnelError = 'Tunnel exited before it became reachable.'
+        }
+        finish()
+      })
+      // Don't block startup forever if the tunnel is slow/unavailable. Give it
+      // enough headroom for edge registration (observed ~13s), not just the URL.
+      setTimeout(() => {
+        if (!registered && !this.tunnelError) {
+          this.tunnelError = this.tunnelUrl
+            ? 'Tunnel is taking longer than usual to become reachable — wait a moment and retry the link.'
+            : 'Tunnel timed out.'
+        }
+        finish()
+      }, 30000)
     })
   }
 
