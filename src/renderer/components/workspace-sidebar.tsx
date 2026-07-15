@@ -35,6 +35,8 @@ interface Props {
   workspaces: Workspace[]
   activeId: string | null
   busy: Set<string>
+  /** Live per-agent status ('running' | 'waiting' | 'idle') keyed by terminal id. */
+  status: Record<string, string>
   home: string
   query: string
   onQuery: (q: string) => void
@@ -128,7 +130,7 @@ function splitPath(p: string, home: string): { parent: string; base: string } {
 }
 
 export function WorkspaceSidebar({
-  workspaces, activeId, busy, home, query, onQuery,
+  workspaces, activeId, busy, status, home, query, onQuery,
   onAddFolder, onRemoveFolder, onToggle, onAddTerminal, onAddClaude, onAddCodex, onAddPi, onAddTawx,
   agents, onSelectTerminal, onCloseTerminal, onRenameTerminal, usage, limits, version, update, onOpenReleases,
   onUpdate, hotkeyIndex
@@ -206,7 +208,16 @@ export function WorkspaceSidebar({
                 <div className="terms">
                   {ws.terminals.map(t => {
                     const isActive = t.id === activeId
-                    const isBusy = busy.has(t.id)
+                    const isShell = t.kind === 'shell'
+                    // Shell terminals use the output-based busy flag; agent terminals
+                    // report a content-based status (running / waiting / idle=done).
+                    const st = isShell
+                      ? (busy.has(t.id) ? 'running' : 'idle')
+                      : (status[t.id] ?? 'idle')
+                    const dotClass = st === 'running' ? 'working'
+                      : st === 'waiting' ? 'attention'
+                      : isShell ? 'idle'
+                      : 'done'
                     return (
                       <div
                         key={t.id}
@@ -214,7 +225,7 @@ export function WorkspaceSidebar({
                         title={hotkeyIndex[t.id] ? `${t.name}  ·  jump ⌘${hotkeyIndex[t.id]}  ·  double-click to rename` : `${t.name}  ·  double-click to rename`}
                         onClick={() => onSelectTerminal(t.id)}
                       >
-                        <span className={`status-dot ${isBusy ? 'busy' : 'idle'}`} />
+                        <span className={`status-dot ${dotClass}`} />
                         {t.kind === 'claude' && <span className="term-kind-ic claude" title="Claude Code"><ClaudeIcon size={12} /></span>}
                         {t.kind === 'codex' && <span className="term-kind-ic codex" title="Codex"><CodexIcon size={12} /></span>}
                         {t.kind === 'pi' && <span className="term-kind-ic pi" title="PI"><PiIcon size={12} /></span>}
@@ -243,7 +254,9 @@ export function WorkspaceSidebar({
                         )}
                         {t.note?.trim() && <span className="term-note-dot" title={t.note}>📝</span>}
                         {isActive && <span className="term-state">active</span>}
-                        {!isActive && isBusy && <span className="term-running">running</span>}
+                        {!isActive && st === 'running' && <span className="term-running">running</span>}
+                        {!isActive && st === 'waiting' && <span className="term-waiting">waiting</span>}
+                        {!isActive && !isShell && st === 'idle' && <span className="term-done">done</span>}
                         {hotkeyIndex[t.id] && <span className="term-num" title={`Jump: ⌘${hotkeyIndex[t.id]}`}>⌘{hotkeyIndex[t.id]}</span>}
                         <button
                           className="term-close"

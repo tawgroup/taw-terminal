@@ -20,9 +20,34 @@ interface Props {
   /** Command auto-run once after the shell is ready (e.g. `claude --resume <id>`) */
   initialCommand?: string
   onImagePaste?: (dataUrl: string) => void
+  /** Reports the live agent status of this terminal (running / waiting / idle). */
+  onStatus?: (id: string, status: AgentTermStatus) => void
 }
 
-export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath, initialCommand, onImagePaste }: Props) {
+/** Coarse agent state derived from what's on screen — see the status effect below. */
+export type AgentTermStatus = 'running' | 'waiting' | 'idle'
+
+// A generating agent (Claude Code, Codex, …) keeps an interrupt hint on screen for
+// the whole turn; it disappears the moment the turn ends. That single line is the
+// most reliable "still working" signal across agents and terminal widths.
+const WORKING_RE = /esc(?:ape)? to interrupt|ctrl\+c to (?:stop|interrupt)|interrupt\s*·|■\s*stop/i
+// A paused agent asking the user to approve/answer before it can continue.
+const WAITING_RE = /\bdo you want\b|\((?:y\/n|yes\/no)\)|approval required|allow this|permission to|❯?\s*1\.\s*yes\b|press enter to continue|waiting for (?:your )?(?:input|approval)/i
+
+/** Serialize the last ~80 rows actually on screen (decoded grid, no ANSI). */
+function readScreenText(term: Terminal): string {
+  const buf = term.buffer.active
+  const bottom = buf.baseY + term.rows
+  const start = Math.max(0, bottom - 80)
+  const out: string[] = []
+  for (let y = start; y < bottom; y++) {
+    const line = buf.getLine(y)
+    out.push(line ? line.translateToString(true) : '')
+  }
+  return out.join('\n')
+}
+
+export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath, initialCommand, onImagePaste, onStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const terminalRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
@@ -167,6 +192,29 @@ export function TerminalInstance({ id, isActive, cwd, name, kind, workspacePath,
       terminalRef.current.options.theme = xtermTheme
     }
   }, [xtermTheme])
+
+  // Live agent status: poll the on-screen grid so the sidebar knows whether this
+  // agent is still working, is waiting on the user, or has finished — even while an
+  // idle agent keeps repainting its input cursor (which "recent output" mistook for
+  // running). Only agent terminals report; a plain shell keeps the output-based dot.
+  useEffect(() => {
+    if (!onStatus || !kind || kind === 'shell') return
+    let last: AgentTermStatus | null = null
+    const tick = () => {
+      const term = terminalRef.current
+      if (!term) return
+      const text = readScreenText(term)
+      const next: AgentTermStatus = WORKING_RE.test(text)
+        ? 'running'
+        : WAITING_RE.test(text)
+          ? 'waiting'
+          : 'idle'
+      if (next !== last) { last = next; onStatus(id, next) }
+    }
+    const iv = setInterval(tick, 500)
+    const warmup = setTimeout(tick, 400)
+    return () => { clearInterval(iv); clearTimeout(warmup) }
+  }, [id, kind, onStatus])
 
   // Handle visibility and focus
   useEffect(() => {

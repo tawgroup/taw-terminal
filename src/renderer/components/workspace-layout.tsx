@@ -44,6 +44,10 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [busy, setBusy] = useState<Set<string>>(new Set())
+  // Live per-agent status ('running' | 'waiting' | 'idle') reported by each
+  // terminal instance from its on-screen content. Drives the sidebar dot/label
+  // for agent terminals; shell terminals keep the output-based `busy` dot.
+  const [agentStatus, setAgentStatus] = useState<Record<string, string>>({})
   const [query, setQuery] = useState('')
   const [shellName, setShellName] = useState('zsh')
   const [home, setHome] = useState('')
@@ -326,9 +330,20 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
     return off
   }, [])
 
+  // Each agent terminal reports its own status; keep the aggregate map here.
+  const handleTermStatus = useCallback((termId: string, status: string) => {
+    setAgentStatus(prev => (prev[termId] === status ? prev : { ...prev, [termId]: status }))
+  }, [])
+
   // --- remove a terminal (used by close button and on shell exit) ---
   const removeTerminal = useCallback((termId: string) => {
     setWorkspaces(prev => prev.map(w => ({ ...w, terminals: w.terminals.filter(t => t.id !== termId) })))
+    setAgentStatus(prev => {
+      if (!(termId in prev)) return prev
+      const next = { ...prev }
+      delete next[termId]
+      return next
+    })
     setActiveId(prev => {
       if (prev !== termId) return prev
       const remaining = workspaces.flatMap(w => w.terminals).filter(t => t.id !== termId)
@@ -587,6 +602,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
         workspaces={workspaces}
         activeId={activeId}
         busy={busy}
+        status={agentStatus}
         home={home}
         query={query}
         onQuery={setQuery}
@@ -718,6 +734,7 @@ export function WorkspaceLayout({ onImagePaste }: Props) {
               workspacePath={t.cwd}
               initialCommand={t.initialCommand}
               onImagePaste={onImagePaste}
+              onStatus={handleTermStatus}
             />
           ))}
           {activeTerm?.noteOpen && (
